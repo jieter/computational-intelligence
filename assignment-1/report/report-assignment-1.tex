@@ -26,7 +26,6 @@
 \usepackage{pgf}
 \usepackage{tikz}
 \usetikzlibrary{arrows,automata}
-\tikzstyle{vertex}=[circle,draw=black!50,minimum size=20pt,inner sep=3pt]
 
 \title{TI2736-A\\ Assignment 1:  Artificial Neural Network}
 
@@ -42,7 +41,52 @@
 \begin{enumerate}[1.]
 	\item Omdat er 10 eigenschappen zijn hebben we 10 inputneurons nodig.
 	\item
-\end{enumerate}
+	\item
+	\item
+	\item Ons netwerk kan voorgesteld worden als in dit plaatje: \\
 
+	\begin{center}
+		\tikzstyle{neuron}=[draw=black!50,minimum size=20pt,inner sep=3pt]
+		\tikzstyle{input}=[rectangle]
+		\tikzstyle{hidden}=[circle]
+		\tikzstyle{output}=[circle]
+		\begin{tikzpicture}[node distance=3cm,scale=1,auto]
+			\def \scalar {0.9}
+
+			\def \inputs {10}
+			\def \hidden {7}
+			\def \outputs {7}
+
+
+			\foreach \m in {1,...,\inputs}{
+				\node[neuron,input] (input-\m) at(0, {(-\m + \inputs / 2) * \scalar}) {$\m$};
+			}
+
+			\foreach \m in {1,...,\hidden}{
+				\node[neuron,hidden] (hidden-\m) at(7, {(-\m + \hidden / 2) * \scalar}) {$\m$};
+			}
+
+			\foreach \m in {1,...,\outputs}{
+				\node[neuron,output] (output-\m) at(14, {(-\m + \outputs / 2) * \scalar}) {$\m$};
+			}
+
+			\foreach \i in {1,...,\inputs}{
+				\foreach \h in {1,...,\hidden}{
+					\path (input-\i) edge [draw=black!40] (hidden-\h);
+				}
+			}
+
+			\foreach \h in {1,...,\hidden}{
+				\foreach \o in {1,...,\outputs}{
+					\path (hidden-\h) edge [draw=black!40] (output-\o);
+				}
+			}
+
+			\node (input) at (0, {(-\inputs / 2 - 1) * \scalar}) {inputs};
+			\node (hidden) at (7, {(-\hidden / 2 - 1) * \scalar}) {hidden};
+			\node (output) at (14, {(-\outputs / 2 - 1) * \scalar}) {outputs};
+		\end{tikzpicture}
+	\end{center}
+\end{enumerate}
 \end{document}
 
