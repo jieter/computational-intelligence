@@ -72,13 +72,13 @@
 
 			\foreach \i in {1,...,\inputs}{
 				\foreach \h in {1,...,\hidden}{
-					\path (input-\i) edge [draw=black!40] (hidden-\h);
+					\path (input-\i) edge [draw=black!40, very thin] (hidden-\h);
 				}
 			}
 
 			\foreach \h in {1,...,\hidden}{
 				\foreach \o in {1,...,\outputs}{
-					\path (hidden-\h) edge [draw=black!40] (output-\o);
+					\path (hidden-\h) edge [draw=black!40, very thin] (output-\o);
 				}
 			}
 
