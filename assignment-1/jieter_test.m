@@ -37,8 +37,8 @@ targets = [0, 1; 1, 0; 1, 0; 0, 1];
 %end
 
 % Initialize weights for all neurons
-w_inputs = w_initializer([no_hidden, no_inputs]);
-w_hidden = w_initializer([no_outputs, no_hidden]);
+w_ij = w_initializer([no_inputs, no_hidden]);
+w_jk = w_initializer([no_hidden, no_outputs]);
 
 threshold_hidden = w_initializer([1, no_hidden]);
 threshold_outputs = w_initializer([1, no_outputs]);
@@ -47,55 +47,55 @@ threshold_outputs = w_initializer([1, no_outputs]);
 for epoch = 1:epochs
     
     % iterate over training set.
-    for i = 1:size(features, 2)
+    for current = 1:size(features, 2)
         
     %%%%% forward phase
     
         y_hidden = zeros(1, no_hidden);
-        for hidden = 1:no_hidden
-            X = dot(features(i, :), w_inputs(hidden, :));
-            y_hidden(hidden) = activation(X - threshold_hidden(hidden));
+        for j = 1:no_hidden
+            X = dot(features(current, :), w_ij(:, j));
+            y_hidden(j) = activation(X - threshold_hidden(j));
         end
     
         y_output = zeros(1, no_outputs);
-        for output = 1:no_outputs
-           X = dot(y_hidden, transpose(w_hidden(output, :)));
-           y_output(output) = activation(X - threshold_outputs(output));
+        for k = 1:no_outputs
+           X = dot(y_hidden, transpose(w_jk(:, k)));
+           y_output(k) = activation(X - threshold_outputs(k));
         end
         
     %%%%% backward phase
-        
+
         % calculate output error
-        e = targets(i, :) - y_output;
-        
+        e = targets(current, :) - y_output;
+
         e_gradient_output = y_output .* (1 - y_output) .* e;
-   
+
         % y * (1 - y) * sum(of each  (e_gradient_output * w_hidden))
-        % TODO
         e_gradient_hidden = zeros(1, no_hidden);
-        for hidden = 1:no_hidden
-            e_gradient_hidden(1, hidden) = y_hidden(hidden) * (1 - y_hidden(hidden)) * ...
-            sum(e_gradient_output * w_hidden(:, hidden));
+        for j = 1:no_hidden
+            e_gradient_hidden(j) = y_hidden(j) * (1 - y_hidden(j)) * ...
+                                   sum(e_gradient_output .* w_jk(j, :));
         end
-        
+         
         % calculate delta's
-        d_threshold_outputs = learning_rate .* (-1)           .* e_gradient_output;
-        d_weight_hidden     = learning_rate .* y_output       .* e_gradient_output;
-        %d_weight_input      = learning_rate .* features(i, :) .* e_gradient_hidden;
-        
+        d_threshold_outputs = learning_rate .* (-1)                 .* e_gradient_output;
+        d_weight_jk         = learning_rate .* y_output             .* e_gradient_output;
+        d_weight_ij         = learning_rate .* features(current, :) .* e_gradient_hidden;
+
+
         % adjust weights for the connenection between hidden and output layers.
-        for output = 1:no_outputs
-            w_hidden(output,:) = w_hidden(output,:) + d_weight_hidden;
-        end
-        % adjust output thresholds
-        threshold_outputs = threshold_outputs + d_threshold_outputs;
-        
-        % adjust hidden thresholds:
-   
-        % TODO
-        
-        % adjust input weights
-        % TODO
+%         for k = 1:no_outputs
+%             w_jk(:, k) = w_jk(:, k) + d_weight_jk;
+%         end
+%         % adjust output thresholds
+%         threshold_outputs = threshold_outputs + d_threshold_outputs;
+%         
+%         % adjust hidden thresholds:
+%    
+%         % TODO
+%         
+%         % adjust input weights
+%         % TODO
         
     end
 

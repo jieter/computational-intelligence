@@ -51,13 +51,14 @@
 		\tikzstyle{input}=[rectangle]
 		\tikzstyle{hidden}=[circle]
 		\tikzstyle{output}=[circle]
+		\tikzstyle{connection}=[draw=black!40, very thin]
+
 		\begin{tikzpicture}[node distance=3cm,scale=1,auto]
 			\def \scalar {0.9}
 
 			\def \inputs {10}
 			\def \hidden {10}
 			\def \outputs {7}
-
 
 			\foreach \m in {1,...,\inputs}{
 				\node[neuron,input] (input-\m) at(0, {(-\m + \inputs / 2) * \scalar}) {$\m$};
@@ -71,15 +72,15 @@
 				\node[neuron,output] (output-\m) at(14, {(-\m + \outputs / 2) * \scalar}) {$\m$};
 			}
 
-			\foreach \i in {1,...,\inputs}{
-				\foreach \h in {1,...,\hidden}{
-					\path (input-\i) edge [draw=black!40, very thin] (hidden-\h);
+			% connections between neurons
+			\foreach \j in {1,...,\hidden}{
+				% input to hidden layer
+				\foreach \i in {1,...,\inputs}{
+					\path (input-\i) edge [connection] (hidden-\j);
 				}
-			}
-
-			\foreach \h in {1,...,\hidden}{
-				\foreach \o in {1,...,\outputs}{
-					\path (hidden-\h) edge [draw=black!40, very thin] (output-\o);
+				% hidden to output layer
+				\foreach \k in {1,...,\outputs}{
+					\path (hidden-\j) edge [connection] (output-\k);
 				}
 			}
 
@@ -88,9 +89,11 @@
 			\pgfmathparse{(-max(\inputs, \hidden, \outputs) / 2 - 1) * \scalar}
 			\edef\labelY{\pgfmathresult}
 
-			\node (input) at (0, \labelY) {inputs};
-			\node (hidden) at (7, \labelY) {hidden};
-			\node (output) at (14, \labelY) {outputs};
+			\node (input) 	at (0, \labelY)				{inputs};
+			\node (wij)   	at (3.5, \labelY + 0.5)		{$w_{ij}$};
+			\node (hidden)	at (7, \labelY)				{hidden};
+			\node (wjk)		at (10.5, \labelY + 0.5)	{$w_{jk}$};
+			\node (output) 	at (14, \labelY)			{outputs};
 		\end{tikzpicture}
 	\end{center}
 \end{enumerate}
