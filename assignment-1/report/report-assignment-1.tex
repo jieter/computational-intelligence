@@ -39,11 +39,19 @@
 \maketitle
 
 \begin{enumerate}[1.]
+	% 1. How many input neurons are needed for this assignment?
 	\item Omdat er 10 eigenschappen zijn hebben we 10 inputneurons nodig.
+
+	% 2. How many output neurons do you require?
 	\item Voor de 7 verschillende eigenschappen hebben we 7 outputneurons nodig.
+
+	% 3. How many hidden neurons will your network have? (Give an initial guess, later you will try different number of hidden neurons and analyze the network’s performance).
 	\item We beginnen met 10 hidden neurons.
+
+	% 4. Which activation function(s) will you use?
 	\item We zullen de sigmoid-functie gebruiken: $$Y^{sigmoid} = \left( \frac{1}{1 + e^{-X}} \right)$$
 
+	%5. Give a schematic diagram of your complete network
 	\item Ons netwerk kan voorgesteld worden als in dit plaatje: \\
 
 	\begin{center}
@@ -96,6 +104,43 @@
 			\node (output) 	at (14, \labelY)			{outputs};
 		\end{tikzpicture}
 	\end{center}
+
+    % 2.2 Training
+	% 6. How and why did you divide your data into a training, validation and test set?
+	\item
+
+	% 7. How do you evaluate the performance of your network?
+	\item
+
+	% 8. When and why do you decide to end the training?
+	\item
+
+	% 9. Train your network 10 times, each with different initial weights. How does the initialization impact the performance?
+	\item
+
+	% 2.3 Optimization
+	% 10. Train your network with different amounts of hidden neurons. At least 3 times chosen within the range of 7-30 hidden neurons. Generate a plot of the final performance versus the number of hidden neurons in the network. (Hint: you can use the MATLAB command ❜boxplot' or 'errorbar' )
+	\item
+
+	% 11. Pick the architecture with the best result and show a plot of the performance of the training set and the validation set during training, across epochs.
+	\item
+
+	% 2.4 Evaluation
+	% 12. What is the success rate of your network on the test set? How does it compare to the results of the validation set?
+	\item
+
+	% 13. Show a confusion matrix of your test set. How should it be read? Where did your network make the most mistakes? (Search for the meaning and purpose of a confusion matrix and use the function 'plotconfusion' from MATLAB).
+	\item
+
+	% 14. Feed the unknown set (provided on Blackboard) to the network. Export the resulting classes as a comma-separated file exactly as detailed in section 1.2.
+	\item
+
+	% 2.5 Matlab's Toolbox
+	% 15. Use the Toolbox to create a network similar to the one you’ve just made. (You can start the toolbox GUI with 'nnstart' or directly go to pattern recognition with 'nprtool').
+	\item
+
+	% 16. Comment on the differences between your network’s performance and the Toolbox.
+	\item
 \end{enumerate}
 \end{document}
 
