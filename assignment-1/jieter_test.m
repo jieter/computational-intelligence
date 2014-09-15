@@ -1,4 +1,4 @@
-function [classify] = jieter_test()
+function [classify] = jieter_test(no_hidden)
     % TI2730B computational intelligence
     %
     % This is a function to be able to use local functions.
@@ -6,42 +6,35 @@ function [classify] = jieter_test()
 
     % Settings
     debug = true;
-    
+
     % Select only a part of the input set while testing.
-    test_set_size = 3000;
-    
+    test_set_size = 4999;
+
     epochs = 400;
     learning_rate = 0.1;
     mse_threshold = 1e-5;
-    
+
     activation = @(x)(1.0 / (1 + exp(-x)));
 
     % Initializer function to assign random weights between -1 ... 1
     w_initializer = @(L)(-.2 + .4 .* rand(L));
 
-    % Training set
-    if false
-        % XOR for testing purposes.
-        features = [0, 0; 0, 1; 1, 0; 1, 1];
-        targets = [0; 1; 1; 0];
+    % Assignment's training data
+    features_raw = dlmread('data/features.txt');
+    targets_raw = dlmread('data/targets.txt');
 
-        no_hidden = 2;
-    else
-        % Assignment's training data
-        features_raw = dlmread('data/features.txt');
-        targets_raw = dlmread('data/targets.txt');
+    % Translate the nx1 size matrix to an nx(range) matrix
+    % with ones on the position for the expected output.
+    % Each row correspondents with the expected output vector.
+    targets = zeros(size(targets_raw, 1), size(unique(targets_raw), 2));
+    for i=1:size(targets_raw, 1)
+        targets(i, targets_raw(i)) = 1;
+    end
 
-        % Translate the nx1 size matrix to an nx(range) matrix
-        % with ones on the position for the expected output.
-        % Each row correspondents with the expected output vector.
-        targets = zeros(size(targets_raw, 1), size(unique(targets_raw), 2));
-        for i=1:size(targets_raw, 1)
-            targets(i, targets_raw(i)) = 1;
-        end
+    features = features_raw(1:test_set_size,:);
+    targets = targets(1:test_set_size,:);
 
-        features = features_raw(1:test_set_size,:);
-        targets = targets(1:test_set_size,:);
-
+    if nargin < 1
         no_hidden = 7;
     end
 
@@ -72,7 +65,7 @@ function [classify] = jieter_test()
     errors = zeros(1, epochs); 
     if debug
         tic;
-        fprintf('Running %d epochs over trainingset size %d\n\n', epochs, size(features, 1));
+        fprintf('Running %d epochs over trainingset size %d,\nhidden neurons: %d\n\n', epochs, size(features, 1), no_hidden);
     end
 
     % training
@@ -128,7 +121,7 @@ function [classify] = jieter_test()
             threshold_outputs = threshold_outputs + d_threshold_outputs;
             threshold_hidden = threshold_hidden + d_threshold_hidden;
         end
-        
+
         errors(epoch) = sum(e .* e) / size(features, 1);
 
         if errors(epoch) < mse_threshold
@@ -139,14 +132,14 @@ function [classify] = jieter_test()
 
     figure
     semilogy(1:length(errors), errors);
-    title(sprintf('Learning curve %d epochs, training set: %d, hidden neurons:', epochs, size(features, 1), no_hidden));
+    title(sprintf('Learning curve %d epochs, training set: %d, hidden neurons: %d', epochs, size(features, 1), no_hidden));
 
     xlabel('epochs');
     ylabel('mean squared error');
     ylim([0, max(errors)]);
 
-    print('learning_curve-versie1.eps', '-depsc');
-    
+    print(sprintf('learning_curve-versie1-h%d-e%d.eps', no_hidden, epoch), '-depsc');
+
     % pass a reference to the forward function
     function Y = forward_single_output(feature)
        [~, Y] = forward(feature);
@@ -166,10 +159,9 @@ function [classify] = jieter_test()
                success = success + 1;
            end
        end
-       
+
        fprintf('Number of epochs:     %d,   training elements:   %d \n', epoch, test_set_size);
        fprintf('Number of tests:     %d,   hidden neurons:         %d \n', count, no_hidden);
-       fprintf('Number of successes: %d,   success rate:     %0.2f\f', success, success / 2854);
-       
+       fprintf('Number of successes: %d,   success rate:     %0.2f\n\n', success, success / 2854);
     end
 end
