@@ -119,12 +119,15 @@ function [classify] = train_ANN()
     end
 
     plot(errors, 'b-');
+    title('Learning curve for Grocery bot');
     xlim([1, epoch + 1]);
     xlabel('epochs');
 
     ylim([0, max(errors + 0.1)]);
     ylabel('sum-squared error');
-
+    
+    print('learning_curve-versie1.eps', '-depsc');
+    
     % pass a reference to the forward function
     function Y = forward_single_output(feature)
        [~, Y] = forward(feature);
