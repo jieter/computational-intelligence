@@ -3,7 +3,7 @@
 % Jan Pieter Waagmeester
 
 % Settings
-epochs = 10; 
+epochs = 10;
 learning_rate = 0.1;
 
 activation = @(x)(1 / (1 + exp(-x)));
@@ -51,10 +51,9 @@ threshold_outputs = w_initializer([1, no_outputs]);
 for epoch = 1:epochs
     
     % iterate over training set.
-    for current = 1:size(features, 2)
+    for current = 1:size(features, 1)
         
     %%%%% forward phase
-    
         y_hidden = zeros(1, no_hidden);
         for j = 1:no_hidden
             X = dot(features(current, :), w_ij(:, j));
@@ -82,25 +81,28 @@ for epoch = 1:epochs
         end
          
         % calculate delta's
-        d_threshold_outputs = learning_rate .* (-1)                 .* e_gradient_output;
-        d_weight_jk         = learning_rate .* y_output             .* e_gradient_output;
-        d_weight_ij         = learning_rate .* features(current, :) .* e_gradient_hidden;
+        d_threshold_outputs = learning_rate .* (-1)     .* e_gradient_output;
+        d_weight_jk         = learning_rate .* y_output .* e_gradient_output;
 
+        % calculate inpute delta's.
+        d_weight_ij = zeros(no_inputs, no_hidden);
+        % TODO: rewrite to be more matlabish.
+        for i = 1:no_inputs
+            for j = 1:no_hidden
+                d_weight_ij(i, j) = learning_rate .* features(current, i) .* e_gradient_hidden(j);
+            end
+        end
 
-        % adjust weights for the connenection between hidden and output layers.
-%         for k = 1:no_outputs
-%             w_jk(:, k) = w_jk(:, k) + d_weight_jk;
-%         end
-%         % adjust output thresholds
-%         threshold_outputs = threshold_outputs + d_threshold_outputs;
-%         
-%         % adjust hidden thresholds:
-%    
-%         % TODO
-%         
-%         % adjust input weights
-%         % TODO
+        % adjust input weights
+        w_ij = w_ij + d_weight_ij;
         
+        % adjust hidden weights
+        for k = 1:no_outputs
+            w_jk(:, k) = w_jk(:, k) + d_weight_jk(k);
+        end
+        
+        % adjust thresholds
+        threshold_outputs = threshold_outputs + d_threshold_outputs;
+        threshold_hidden = threshold_hidden + d_threshold_hidden;
     end
-
 end
