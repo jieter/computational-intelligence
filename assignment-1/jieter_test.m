@@ -1,19 +1,26 @@
-function [classify] = train_ANN()
+function [classify] = jieter_test()
     % TI2730B computational intelligence
     %
+    % This is a function to be able to use local functions.
     % Jan Pieter Waagmeester
 
     % Settings
-    epochs = 100;
+    debug = true;
+    
+    % Select only a part of the input set while testing.
+    test_set_size = 3000;
+    
+    epochs = 400;
     learning_rate = 0.1;
-
-    activation = @(x)(1 / (1 + exp(-x)));
+    mse_threshold = 1e-5;
+    
+    activation = @(x)(1.0 / (1 + exp(-x)));
 
     % Initializer function to assign random weights between -1 ... 1
     w_initializer = @(L)(-.2 + .4 .* rand(L));
 
     % Training set
-    if 0
+    if false
         % XOR for testing purposes.
         features = [0, 0; 0, 1; 1, 0; 1, 1];
         targets = [0; 1; 1; 0];
@@ -21,13 +28,8 @@ function [classify] = train_ANN()
         no_hidden = 2;
     else
         % Assignment's training data
-        features = dlmread('data/features.txt');
+        features_raw = dlmread('data/features.txt');
         targets_raw = dlmread('data/targets.txt');
-
-        % Select only a part of the input set while testing.
-        test_len = 500;
-        features = features(1:test_len,:);
-        targets_raw = targets_raw(1:test_len,:);
 
         % Translate the nx1 size matrix to an nx(range) matrix
         % with ones on the position for the expected output.
@@ -37,7 +39,10 @@ function [classify] = train_ANN()
             targets(i, targets_raw(i)) = 1;
         end
 
-        no_hidden = 10;
+        features = features_raw(1:test_set_size,:);
+        targets = targets(1:test_set_size,:);
+
+        no_hidden = 7;
     end
 
     no_inputs = size(features, 2);
@@ -65,8 +70,17 @@ function [classify] = train_ANN()
     end
 
     errors = zeros(1, epochs); 
+    if debug
+        tic;
+        fprintf('Running %d epochs over trainingset size %d\n\n', epochs, size(features, 1));
+    end
+
     % training
     for epoch = 1:epochs
+        if debug && mod(epoch, epochs/10) == 0
+            fprintf('Epoch #%d, elapsed: %0.1fs, last msqe: %f\n', epoch, toc, errors(epoch - 1));
+            tic;
+        end
 
         % iterate over training set.
         for current = 1:size(features, 1)
@@ -114,23 +128,48 @@ function [classify] = train_ANN()
             threshold_outputs = threshold_outputs + d_threshold_outputs;
             threshold_hidden = threshold_hidden + d_threshold_hidden;
         end
+        
+        errors(epoch) = sum(e .* e) / size(features, 1);
 
-        errors(epoch) = sum(e .* e);
+        if errors(epoch) < mse_threshold
+            fprintf('MSE < %f, quitting.', mse_threshold);
+            break;
+        end
     end
 
-    plot(errors, 'b-');
-    title('Learning curve for Grocery bot');
-    xlim([1, epoch + 1]);
-    xlabel('epochs');
+    figure
+    semilogy(1:length(errors), errors);
+    title(sprintf('Learning curve %d epochs, training set: %d, hidden neurons:', epochs, size(features, 1), no_hidden));
 
-    ylim([0, max(errors + 0.1)]);
-    ylabel('sum-squared error');
-    
+    xlabel('epochs');
+    ylabel('mean squared error');
+    ylim([0, max(errors)]);
+
     print('learning_curve-versie1.eps', '-depsc');
     
     % pass a reference to the forward function
     function Y = forward_single_output(feature)
        [~, Y] = forward(feature);
     end
+
     classify = @forward_single_output;
+    if debug
+       fprintf('\nLets validate:\n');
+
+       success = 0;
+       start = 5000;
+       count = 2854;
+       for test = 5000:(start + count)
+           [~, actual] = max(classify(features_raw(test, :)));
+           expected = targets_raw(test);
+           if expected == actual
+               success = success + 1;
+           end
+       end
+       
+       fprintf('Number of epochs:     %d,   training elements:   %d \n', epoch, test_set_size);
+       fprintf('Number of tests:     %d,   hidden neurons:         %d \n', count, no_hidden);
+       fprintf('Number of successes: %d,   success rate:     %0.2f\f', success, success / 2854);
+       
+    end
 end
