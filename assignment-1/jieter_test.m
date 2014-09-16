@@ -71,7 +71,7 @@ function [classify] = jieter_test(no_hidden)
     % training
     for epoch = 1:epochs
         if debug && mod(epoch, epochs/10) == 0
-            fprintf('Epoch #%d, elapsed: %0.1fs, last msqe: %f\n', epoch, toc, errors(epoch - 1));
+            % fprintf('Epoch #%d, elapsed: %0.1fs, last msqe: %f\n', epoch, toc, errors(epoch - 1));
             tic;
         end
 
@@ -162,6 +162,6 @@ function [classify] = jieter_test(no_hidden)
 
        fprintf('Number of epochs:     %d,   training elements:   %d \n', epoch, test_set_size);
        fprintf('Number of tests:     %d,   hidden neurons:         %d \n', count, no_hidden);
-       fprintf('Number of successes: %d,   success rate:     %0.2f\n\n', success, success / 2854);
+       fprintf('Number of successes: %d,   success rate:        %0.2f\n\n', success, success / 2854);
     end
 end
