@@ -213,6 +213,7 @@ function [classify] = jieter_test(no_hidden, epochs)
         figure
         plotconfusion(test_targets', actuals')
         filename = sprintf('confusion-matrix-h%d-e%d-t%d', no_hidden, epoch, training_set_size);
+        print(strcat(filename, '.eps'), '-depsc');
         print(strcat(filename, '.png'), '-dpng', '-r300');
 
         success_rate = success / test_set_size;
