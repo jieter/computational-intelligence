@@ -8,9 +8,9 @@ function [classify] = jieter_test(no_hidden)
     debug = true;
 
     % Select only a part of the input set while testing.
-    test_set_size = 4999;
+    test_set_size = 1000;
 
-    epochs = 400;
+    epochs = 200;
     learning_rate = 0.1;
     mse_threshold = 1e-5;
 
@@ -71,7 +71,7 @@ function [classify] = jieter_test(no_hidden)
     % training
     for epoch = 1:epochs
         if debug && mod(epoch, epochs/10) == 0
-            % fprintf('Epoch #%d, elapsed: %0.1fs, last msqe: %f\n', epoch, toc, errors(epoch - 1));
+            fprintf('Epoch #%d, elapsed: %0.1fs, last msqe: %f\n', epoch, toc, errors(epoch - 1));
             tic;
         end
 
@@ -130,7 +130,6 @@ function [classify] = jieter_test(no_hidden)
         end
     end
 
-    figure
     semilogy(1:length(errors), errors);
     title(sprintf('Learning curve %d epochs, training set: %d, hidden neurons: %d', epochs, size(features, 1), no_hidden));
 
@@ -145,13 +144,17 @@ function [classify] = jieter_test(no_hidden)
        [~, Y] = forward(feature);
     end
 
-    classify = @forward_single_output;
-    if debug
-       fprintf('\nLets validate:\n');
+    function c = guess_category(feature)
+        [~, c] = max(forward_single_output(feature));
+    end
 
+    classify = @forward_single_output;
+    
+    if debug
        success = 0;
        start = 5000;
        count = 2854;
+
        for test = 5000:(start + count)
            [~, actual] = max(classify(features_raw(test, :)));
            expected = targets_raw(test);
