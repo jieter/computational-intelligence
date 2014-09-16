@@ -1,7 +1,7 @@
 # Evaluate the performance of ANN
 
 ```
->> for hidden = 7:11;
+>> for hidden = 7:15;
 	jieter_test(hidden);
 	jieter_test(hidden);
 	jieter_test(hidden);
@@ -83,3 +83,50 @@ Number of epochs:     400,   training elements:   4999
 Number of tests:     2854,   hidden neurons:        11
 Number of successes: 1386,   success rate:        0.49
 ```
+
+## 12 hidden neurons, 3 runs
+```
+Number of epochs:     400,   training elements:   4999
+Number of tests:     2854,   hidden neurons:        12
+Number of successes: 1428,   success rate:        0.50
+
+Number of epochs:     400,   training elements:   4999
+Number of tests:     2854,   hidden neurons:        12
+Number of successes: 1367,   success rate:        0.48
+
+Number of epochs:     400,   training elements:   4999
+Number of tests:     2854,   hidden neurons:        12
+Number of successes: 1326,   success rate:        0.46
+```
+
+## 13 hidden neurons, 3 runs
+```
+Number of epochs:     400,   training elements:   4999
+Number of tests:     2854,   hidden neurons:        13
+Number of successes: 1304,   success rate:        0.46
+
+Number of epochs:     400,   training elements:   4999
+Number of tests:     2854,   hidden neurons:        13
+Number of successes: 1244,   success rate:        0.44
+
+Number of epochs:     400,   training elements:   4999
+Number of tests:     2854,   hidden neurons:        13
+Number of successes: 1476,   success rate:        0.52
+```
+
+## 14 hidden neurons, 3 runs
+```
+Number of epochs:     400,   training elements:   4999
+Number of tests:     2854,   hidden neurons:        14
+Number of successes: 1199,   success rate:        0.42
+
+Number of epochs:     400,   training elements:   4999
+Number of tests:     2854,   hidden neurons:        14
+Number of successes: 1404,   success rate:        0.49
+
+Number of epochs:     400,   training elements:   4999
+Number of tests:     2854,   hidden neurons:        14
+Number of successes: 1224,   success rate:        0.43
+```
+
+## 15 hidden neurons, 3 runs
