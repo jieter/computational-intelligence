@@ -21,8 +21,7 @@ function [classify] = jieter_test(no_hidden, epochs)
     activation = @(x)(1.0 / (1 + exp(-x)));
 
     % Initializer function to assign random weights
-    w_init_range = 1;
-    w_initializer = @(L)(-w_init_range + (2 * w_init_range) .* rand(L));
+    w_initializer = @(L, w_init_range)(-w_init_range + (2 * w_init_range) .* rand(L));
 
     % Assignments training data
     features_raw = dlmread('data/features.txt');
@@ -58,26 +57,28 @@ function [classify] = jieter_test(no_hidden, epochs)
 
 
     % Initialize weights for all neurons
-    w_ij = w_initializer([no_inputs, no_hidden]);
-    w_jk = w_initializer([no_hidden, no_outputs]);
+    w_ij = w_initializer([no_inputs, no_hidden], 1);
+    w_jk = w_initializer([no_hidden, no_outputs], 1);
 
-    threshold_hidden = w_initializer([1, no_hidden]);
-    threshold_outputs = w_initializer([1, no_outputs]);
+    threshold_hidden = w_initializer([1, no_hidden], 2);
+    threshold_outputs = w_initializer([1, no_outputs], 2);
+
+    y_hidden = zeros(1, no_hidden);
+    y_output = zeros(1, no_outputs);
 
     % this is the forward phase in a function to be albe to use it later.
     function [y_hidden, y_output] = forward(feature)
-        y_hidden = zeros(1, no_hidden);
         for j = 1:no_hidden
             X = dot(feature, w_ij(:, j));
             y_hidden(j) = activation(X - threshold_hidden(j));
         end
 
-        y_output = zeros(1, no_outputs);
         for k = 1:no_outputs
            X = dot(y_hidden, transpose(w_jk(:, k)));
            y_output(k) = activation(X - threshold_outputs(k));
         end
     end
+
 
     errors = zeros(1, epochs);
     validations = zeros(1, epochs);
@@ -86,22 +87,30 @@ function [classify] = jieter_test(no_hidden, epochs)
         tic;
         fprintf('Running %d epochs over trainingset size %d,\nhidden neurons: %d,\n', ...
                 epochs, training_set_size, no_hidden);
-        fprintf('weights initialized on interval -%0.2f .. %0.2f\n\n',  w_init_range, w_init_range);
     end
+
+    figure
+
+    subplot(2, 1, 1);
+    w_ij_plt = imagesc(w_ij);
+    title('Hidden layer');
+
+    colormap(jet(10));
+    colorbar('location', 'eastoutside');
+    xlabel('hidden neuron');
+    ylabel('input neuron');
+
+    subplot(2, 1, 2);
+    w_jk_plt = imagesc(w_jk);
+    title('Output layer');
+
+    colormap(jet(10))
+    colorbar('location', 'eastoutside');
+    xlabel('output neuron');
+    ylabel('hidden neuron');
 
     % training
     for epoch = 1:epochs
-        if debug && epochs > 2 && mod(epoch, epochs / 10) == 0
-            elapsed = toc;
-            fprintf('Epoch #%d, elapsed: %0.1fs, last msqe: %f\n', epoch, elapsed, errors(epoch - 1));
-
-            if epoch == epochs / 10
-                fprintf('  epoch 1-%d took %0.1fs, done in about %0.1fmin\n', ...
-                        epoch, elapsed, (elapsed * 9) / 60);
-            end
-            tic;
-        end
-
         epoch_errors = zeros(1, training_set_size);
         % iterate over training set.
         for current = 1:training_set_size
@@ -125,24 +134,14 @@ function [classify] = jieter_test(no_hidden, epochs)
             end
 
             % calculate deltas
-            d_threshold_outputs = learning_rate .* (-1)     .* e_gradient_output;
-            d_threshold_hidden  = learning_rate .* (-1)     .* e_gradient_hidden;
-            d_weight_jk         = learning_rate .* y_output .* e_gradient_output;
-            d_weight_ij = zeros(no_inputs, no_hidden);
-            % TODO: rewrite to vector form.
-            for i = 1:no_inputs
-                for j = 1:no_hidden
-                    d_weight_ij(i, j) = learning_rate .* trainingset(current, i) .* e_gradient_hidden(j);
-                end
-            end
+            d_threshold_outputs = learning_rate .* (-1)                     .* e_gradient_output;
+            d_threshold_hidden  = learning_rate .* (-1)                     .* e_gradient_hidden;
+            d_weight_jk         = learning_rate .* y_output                 .* e_gradient_output;
+            d_weight_ij         = learning_rate .* (trainingset(current, :)' * e_gradient_hidden);
 
-            % adjust input weights
+            % update weights
             w_ij = w_ij + d_weight_ij;
-
-            % adjust hidden weights
-            for k = 1:no_outputs
-                w_jk(:, k) = w_jk(:, k) + d_weight_jk(k);
-            end
+            w_jk = w_jk + repmat(d_weight_jk, no_hidden, 1);
 
             % adjust thresholds
             threshold_outputs = threshold_outputs + d_threshold_outputs;
@@ -156,6 +155,14 @@ function [classify] = jieter_test(no_hidden, epochs)
             fprintf('MSE < %f, quitting.\n', mse_threshold);
             break;
         end
+        if epoch > 2
+            if errors(epoch) > errors(epoch - 1)
+                fprintf('error increasing, quitting');
+                break;
+            end
+
+
+        end
 
         % Validation;
         epoch_validations = zeros(1, validation_set_size);
@@ -166,6 +173,23 @@ function [classify] = jieter_test(no_hidden, epochs)
             epoch_validations(current) = sum(e .* e);
         end
         validations(epoch) = mean(epoch_validations);
+
+        % update weight plot
+        set(w_jk_plt, 'CData', w_jk);
+        set(w_ij_plt, 'CData', w_ij);
+        drawnow;
+
+        if debug && epochs > 2 && mod(epoch, epochs / 10) == 0
+            elapsed = toc;
+
+            fprintf('Epoch #%d, elapsed: %0.1fs, training: %0.6f, %0.6f \n', epoch, elapsed, errors(epoch), validations(epoch));
+
+            if epoch == epochs / 10
+                fprintf('  epoch 1-%d took %0.1fs, done in about %0.1fmin\n', ...
+                        epoch, elapsed, (elapsed * 9) / 60);
+            end
+            tic;
+        end
     end
 
     % Make a plot
@@ -212,6 +236,10 @@ function [classify] = jieter_test(no_hidden, epochs)
 
         figure
         plotconfusion(test_targets', actuals')
+
+        title(sprintf('Confusion matrix %d epochs, training set: %d, hidden neurons: %d', ...
+                      epochs, training_set_size, no_hidden));
+
         filename = sprintf('confusion-matrix-h%d-e%d-t%d', no_hidden, epoch, training_set_size);
         print(strcat(filename, '.eps'), '-depsc');
         print(strcat(filename, '.png'), '-dpng', '-r300');
