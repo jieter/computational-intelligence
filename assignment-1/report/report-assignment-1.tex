@@ -30,7 +30,6 @@
 \title{TI2736-A\\ Assignment 1:  Artificial Neural Network}
 
 \author{
-	Arthur Hovanesyan - \\
 	David Akkerman - \\
 	Jan Pieter Waagmeester - 1222848 \\
 }
@@ -43,16 +42,17 @@
 	\item Omdat er 10 eigenschappen zijn hebben we 10 inputneurons nodig.
 
 	% 2. How many output neurons do you require?
-	\item Voor de 7 verschillende eigenschappen hebben we 7 outputneurons nodig.
+	\item Voor de 7 verschillende classes hebben we 7 outputneurons nodig.
 
 	% 3. How many hidden neurons will your network have? (Give an initial guess, later you will try different number of hidden neurons and analyze the network’s performance).
 	\item We beginnen met 10 hidden neurons.
 
 	% 4. Which activation function(s) will you use?
-	\item We zullen de sigmoid-functie gebruiken: $$Y^{sigmoid} = \left( \frac{1}{1 + e^{-X}} \right)$$
+	\item We zullen de sigmoid-functie gebruiken:
+	$$Y^{sigmoid} = \left( \frac{1}{1 + e^{-X}} \right)$$
 
 	%5. Give a schematic diagram of your complete network
-	\item Ons netwerk kan voorgesteld worden als in dit plaatje: \\
+	\item Ons netwerk kan voorgesteld worden als in het volgende plaatje. Daarbij kan het aantal hidden neurons uiteraard gevarieerd worden. \\
 
 	\begin{center}
 		\tikzstyle{neuron}=[draw=black!50,minimum size=20pt,inner sep=3pt]
@@ -107,10 +107,10 @@
 
     % 2.2 Training
 	% 6. How and why did you divide your data into a training, validation and test set?
-	\item
+	\item We gebruiken ongeveer $50\%$ van de data voor training, $25\%$ voor validatie en $25\%$ als testset. De data lijkt aardig random gesorteerd te zijn, het is dus niet nodig om te zorgen dat er ongeveer even veel van elke class in elke set aanwezig is.
 
 	% 7. How do you evaluate the performance of your network?
-	\item
+	\item Door te kijken naar de \textit{Mean square error} (MSE) op te trainingset, en op de validatieset.
 
 	% 8. When and why do you decide to end the training?
 	\item
