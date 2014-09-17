@@ -17,7 +17,7 @@ for j = 1:length(B)
 end
 clear j
 
-hidden_neurons = 10;    %number of hidden neurons
+hidden_neurons = 30;    %number of hidden neurons
 alpha = 0.1;            %learning rate
 training_set = 5000;    %size of the training set
 wij = zeros(hidden_neurons,10);
@@ -141,3 +141,5 @@ validation = class' - B(1:length(class));
 fout = nnz(validation);
 
 toc
+
+Validatie;
