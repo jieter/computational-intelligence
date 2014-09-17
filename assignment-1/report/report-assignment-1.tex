@@ -137,10 +137,19 @@
 
 	% 2.5 Matlab's Toolbox
 	% 15. Use the Toolbox to create a network similar to the one you’ve just made. (You can start the toolbox GUI with 'nnstart' or directly go to pattern recognition with 'nprtool').
-	\item
+	\item Met \verb|nprtool| is het binnen een paar minuten mogelijk om een netwerk te maken wat er zo uitziet:
+
+	\begin{figure}[!h]
+		\centering
+		\includegraphics[width=.8\textwidth]{nprtool-diagram}
+	\end{figure}
 
 	% 16. Comment on the differences between your network’s performance and the Toolbox.
-	\item
+	\item De performance van dit netwerk is erg goed, en de training is ook erg snel klaar. Zelf met 10 hidden neurons worden succes-percentages van boven de $90\%$ gehaald.
+
+	Tijdens het maken van het eigen neurale netwerk had ik het idee dat het gebruiken van de sigmoid-activatiefunctie wellicht voor de output-layer niet handig was. Dit netwerk gebruikt een softmax activatiefunctie in de output-layer.
+
+	De veel hogere performance is waarschijnlijk verklaarbaar door bijvoorbeeld implementatie in correcte matrix-algebra en het toevoegen van het aanpassen van de \textit{learning rate}, het toevoegen van een momentum-term in de delta-rule (Negnevitsky, equation 6.17).
 \end{enumerate}
 \end{document}
 
