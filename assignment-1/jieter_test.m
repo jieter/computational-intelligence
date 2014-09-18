@@ -151,18 +151,16 @@ function [classify] = jieter_test(no_hidden, epochs)
         errors(epoch) = mean(epoch_errors);
 
         % Stop conditions
-        if errors(epoch) < mse_threshold
-            fprintf('MSE < %f, quitting.\n', mse_threshold);
-            break;
-        end
-        if epoch > 2
-            if errors(epoch) > errors(epoch - 1)
-                fprintf('error increasing, quitting');
-                break;
-            end
-
-
-        end
+        % if errors(epoch) < mse_threshold
+        %     fprintf('MSE < %f, quitting.\n', mse_threshold);
+        %     break;
+        % end
+        % if epoch > 2
+        %     if errors(epoch) > errors(epoch - 1)
+        %         fprintf('error increasing, quitting');
+        %         break;
+        %     end
+        % end
 
         % Validation;
         epoch_validations = zeros(1, validation_set_size);
@@ -196,7 +194,7 @@ function [classify] = jieter_test(no_hidden, epochs)
     figure
     semilogy(1:length(errors), errors, 'b', 1:length(validations), validations, 'r');
     title(sprintf('Learning curve %d epochs, training set: %d, hidden neurons: %d', ...
-                  epochs, training_set_size, no_hidden));
+                  epoch, training_set_size, no_hidden));
 
     xlabel('epochs');
     ylabel('mean squared error');
@@ -238,7 +236,7 @@ function [classify] = jieter_test(no_hidden, epochs)
         plotconfusion(test_targets', actuals')
 
         title(sprintf('Confusion matrix %d epochs, training set: %d, hidden neurons: %d', ...
-                      epochs, training_set_size, no_hidden));
+                      epoch, training_set_size, no_hidden));
 
         filename = sprintf('confusion-matrix-h%d-e%d-t%d', no_hidden, epoch, training_set_size);
         print(strcat(filename, '.eps'), '-depsc');
