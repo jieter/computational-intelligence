@@ -30,12 +30,13 @@
 \title{TI2736-A\\ Assignment 1:  Artificial Neural Network}
 
 \author{
-	David Akkerman - \\
+	David Akkerman - 4220390 \\
 	Jan Pieter Waagmeester - 1222848 \\
 }
 
 \begin{document}
 \maketitle
+Onze groepssgenoot is om persoonlijke redenen gestopt met het vak. Deze opdracht hebben we met ons tweeën gemaakt.
 
 \begin{enumerate}[1.]
 	% 1. How many input neurons are needed for this assignment?
@@ -110,7 +111,7 @@
 	\item We gebruiken ongeveer $50\%$ van de data voor training, $25\%$ voor validatie en $25\%$ als testset. De data lijkt aardig random gesorteerd te zijn, het is dus niet nodig om te zorgen dat er ongeveer even veel van elke class in elke set aanwezig is.
 
 	% 7. How do you evaluate the performance of your network?
-	\item Door te kijken naar de \textit{Mean square error} (MSE) op te trainingset, en op de validatieset.
+	\item Door te kijken naar de \textit{Mean square error} (MSE) op te trainingset, en op de validatieset. Zolang ze beide dalen, wordt het netwerk beter. Als de MSE op de trainingsset daalt, maar die op de validatieset gaat stijgen is er sprake van overfitting: het netwerk wordt beter in het herkennen van ruis in de trainingsset, maar niet beter in het herkennen van de algemene patronen.
 
 	% 8. When and why do you decide to end the training?
 	\item
@@ -120,7 +121,15 @@
 
 	% 2.3 Optimization
 	% 10. Train your network with different amounts of hidden neurons. At least 3 times chosen within the range of 7-30 hidden neurons. Generate a plot of the final performance versus the number of hidden neurons in the network. (Hint: you can use the MATLAB command ❜boxplot' or 'errorbar' )
-	\item
+	\item We hebben 23 verschillende netwerken, met 7 - 30 \textit{hidden neurons} 10 keer getraind. De succes-ratio van die netwerken hebben we verwerkt in de volgende boxplots:
+    \begin{figure}[!ht]
+    	\centering
+        \includegraphics[width=.9\textwidth]{images/error-boxplot}
+    \end{figure}
+    Hieruit blijkt ondermeer dat de performance ook bij een klein aantal \textit{hidden neurons} nog best goed is. Naast dit plaatje hebben we nog gekeken naar kleinere aantallen en zelfs met 4 \textit{hidden neurons} wordt in gemiddeld $85\%$ van de gevallen nog een correcte indeling in klassen gemaakt.
+
+    Verder is duidelijk dat het op een gegeven moment geen zin meer heeft om nog meer \textit{hidden neurons} toe te voeggen, het resulterende netwerk heeft er geen significant betere performance door.
+
 
 	% 11. Pick the architecture with the best result and show a plot of the performance of the training set and the validation set during training, across epochs.
 	\item
@@ -130,26 +139,31 @@
 	\item
 
 	% 13. Show a confusion matrix of your test set. How should it be read? Where did your network make the most mistakes? (Search for the meaning and purpose of a confusion matrix and use the function 'plotconfusion' from MATLAB).
-	\item
+	\item Een confusionplot gemaakt met \verb|plotconfusion|. Op de $y$-as staan de output-classes zoals ons netwerk produceert. Op de $x$-as staat de verwachtingswaarde. Een juist voorspelde waarde staat dus op de diagonaal, in de groene cellen.  \\
+    Verder is er ook uit af te lezen dat in dit geval het netwerk 20 keer een 4 voorspelde, terwijl het een 7 had moeten zijn. Dat is een duidelijke uitschieter waar verder voornamelijk fouten onder de 10 staan.
+
+	\begin{figure}[!ht]
+    	\centering
+        \includegraphics[width=.8\textwidth]{images/confusion-matrix-eps}
+    \end{figure}
 
 	% 14. Feed the unknown set (provided on Blackboard) to the network. Export the resulting classes as a comma-separated file exactly as detailed in section 1.2.
-	\item
+	\item Geüpload naar blackboard als \verb|5_classes.txt|
 
 	% 2.5 Matlab's Toolbox
 	% 15. Use the Toolbox to create a network similar to the one you’ve just made. (You can start the toolbox GUI with 'nnstart' or directly go to pattern recognition with 'nprtool').
 	\item Met \verb|nprtool| is het binnen een paar minuten mogelijk om een netwerk te maken wat er zo uitziet:
 
-	\begin{figure}[!h]
+	\begin{figure}[!ht]
 		\centering
-		\includegraphics[width=.8\textwidth]{images/nprtool-diagram}
+		\includegraphics[width=.7\textwidth]{images/nprtool-diagram}
 	\end{figure}
 
 	% 16. Comment on the differences between your network’s performance and the Toolbox.
-	\item De performance van dit netwerk is erg goed, en de training is ook erg snel klaar. Zelf met 10 hidden neurons worden succes-percentages van boven de $90\%$ gehaald.
+	\item De performance van dit netwerk is erg goed, en de training is ook erg snel klaar. Ook met 10 hidden neurons worden succes-percentages van boven de $90\%$ gehaald.
 
-	Tijdens het maken van het eigen neurale netwerk had ik het idee dat het gebruiken van de sigmoid-activatiefunctie wellicht voor de output-layer niet handig was. Dit netwerk gebruikt een softmax activatiefunctie in de output-layer.
+	Tijdens het maken van het eigen neurale netwerk had ik het idee dat het gebruiken van de sigmoid-activatiefunctie wellicht voor de output-layer niet handig was. Dit netwerk gebruikt een softmax activatiefunctie in de output-layer, wellicht ook een reden van betere prestaties.
 
-	De veel hogere performance is waarschijnlijk verklaarbaar door bijvoorbeeld implementatie in correcte matrix-algebra en het toevoegen van het aanpassen van de \textit{learning rate}, het toevoegen van een momentum-term in de delta-rule (Negnevitsky, equation 6.17).
+	De veel hogere trainingsefficientie is waarschijnlijk verklaarbaar door bijvoorbeeld implementatie in correcte matrix-algebra en het toevoegen van het aanpassen van de \textit{learning rate}, het toevoegen van een momentum-term in de delta-rule (Negnevitsky, equation 6.17).
 \end{enumerate}
 \end{document}
-

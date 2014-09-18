@@ -86,6 +86,7 @@ function [errors, success_rate] = jieter_test(no_hidden, epochs, debug)
 
     errors = zeros(1, epochs);
     validations = zeros(1, epochs);
+    epoch_errors = zeros(1, training_set_size);
 
     if debug
         tic;
@@ -115,7 +116,6 @@ function [errors, success_rate] = jieter_test(no_hidden, epochs, debug)
 
     % training
     for epoch = 1:epochs
-        epoch_errors = zeros(1, training_set_size);
         % iterate over training set.
         for current = 1:training_set_size
 
