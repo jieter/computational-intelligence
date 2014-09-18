@@ -1,4 +1,4 @@
-function [classify] = jieter_test(no_hidden, epochs)
+function [errors, success_rate] = jieter_test(no_hidden, epochs)
     % TI2730B computational intelligence
     %
     % This is a function to be able to use local functions.
@@ -18,7 +18,7 @@ function [classify] = jieter_test(no_hidden, epochs)
     learning_rate = 0.1;
     mse_threshold = 1e-5;
 
-    activation = @(x)(1.0 / (1 + exp(-x)));
+    activation = @(x)(1.0 ./ (1 + exp(-x)));
 
     % Initializer function to assign random weights
     w_initializer = @(L, w_init_range)(-w_init_range + (2 * w_init_range) .* rand(L));
@@ -69,14 +69,14 @@ function [classify] = jieter_test(no_hidden, epochs)
     % this is the forward phase in a function to be albe to use it later.
     function [y_hidden, y_output] = forward(feature)
         for j = 1:no_hidden
-            X = dot(feature, w_ij(:, j));
-            y_hidden(j) = activation(X - threshold_hidden(j));
+            y_hidden(j) = sum(feature .* transpose(w_ij(:, j)));
         end
+        y_hidden = activation(y_hidden - threshold_hidden);
 
         for k = 1:no_outputs
-           X = dot(y_hidden, transpose(w_jk(:, k)));
-           y_output(k) = activation(X - threshold_outputs(k));
+           y_output(k) = sum(y_hidden .* transpose(w_jk(:, k)));
         end
+        y_output = activation(y_output - threshold_outputs);
     end
 
 
@@ -122,26 +122,26 @@ function [classify] = jieter_test(no_hidden, epochs)
 
             % calculate output error
             e = trainings_targets(current, :) - y_output;
-            epoch_errors(current) = sum(e .* e);
+            epoch_errors(current) = sum(e .^ 2);
 
             e_gradient_output = y_output .* (1 - y_output) .* e;
 
             % y * (1 - y) * sum(of each  (e_gradient_output * w_hidden))
             e_gradient_hidden = zeros(1, no_hidden);
             for j = 1:no_hidden
-                e_gradient_hidden(j) = y_hidden(j) * (1 - y_hidden(j)) * ...
+                e_gradient_hidden(j) = y_hidden(j) .* (1 - y_hidden(j)) * ...
                                        sum(e_gradient_output .* w_jk(j, :));
             end
 
             % calculate deltas
             d_threshold_outputs = learning_rate .* (-1)                     .* e_gradient_output;
             d_threshold_hidden  = learning_rate .* (-1)                     .* e_gradient_hidden;
-            d_weight_jk         = learning_rate .* y_output                 .* e_gradient_output;
-            d_weight_ij         = learning_rate .* (trainingset(current, :)' * e_gradient_hidden);
+            d_weight_jk         = learning_rate  * (y_hidden'                * e_gradient_output);
+            d_weight_ij         = learning_rate  * (trainingset(current, :)' * e_gradient_hidden);
 
             % update weights
             w_ij = w_ij + d_weight_ij;
-            w_jk = w_jk + repmat(d_weight_jk, no_hidden, 1);
+            w_jk = w_jk + d_weight_jk;
 
             % adjust thresholds
             threshold_outputs = threshold_outputs + d_threshold_outputs;
@@ -150,11 +150,20 @@ function [classify] = jieter_test(no_hidden, epochs)
 
         errors(epoch) = mean(epoch_errors);
 
-        % Stop conditions
-        % if errors(epoch) < mse_threshold
-        %     fprintf('MSE < %f, quitting.\n', mse_threshold);
-        %     break;
+        % adjust learning rate
+        % if epoch > 1
+        %     if errors(epoch) < errors(epoch - 1)
+        %         learning_rate = learning_rate * 1.2;
+        %     else
+        %         learning_rate = learning_rate / 1.3;
+        %     end
         % end
+
+        % Stop conditions
+        if errors(epoch) < mse_threshold
+            fprintf('MSE < %f, quitting.\n', mse_threshold);
+            break;
+        end
         % if epoch > 2
         %     if errors(epoch) > errors(epoch - 1)
         %         fprintf('error increasing, quitting');
@@ -200,7 +209,7 @@ function [classify] = jieter_test(no_hidden, epochs)
     ylabel('mean squared error');
     legend('Training', 'Validation')
 
-    filename = sprintf('learning_curve-h%d-e%d-t%d', no_hidden, epoch, training_set_size);
+    filename = sprintf('plots/learning_curve-h%d-e%d-t%d', no_hidden, epoch, training_set_size);
     print(strcat(filename, '.eps'), '-depsc');
     print(strcat(filename, '.png'), '-dpng', '-r300');
 
@@ -235,10 +244,10 @@ function [classify] = jieter_test(no_hidden, epochs)
         figure
         plotconfusion(test_targets', actuals')
 
-        title(sprintf('Confusion matrix %d epochs, training set: %d, hidden neurons: %d', ...
+        title(sprintf('Confusion matrix (testset) %d epochs, training set: %d, hidden neurons: %d', ...
                       epoch, training_set_size, no_hidden));
 
-        filename = sprintf('confusion-matrix-h%d-e%d-t%d', no_hidden, epoch, training_set_size);
+        filename = sprintf('plots/confusion-matrix-h%d-e%d-t%d', no_hidden, epoch, training_set_size);
         print(strcat(filename, '.eps'), '-depsc');
         print(strcat(filename, '.png'), '-dpng', '-r300');
 
