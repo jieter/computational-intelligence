@@ -1,4 +1,4 @@
-function [errors, success_rate] = jieter_test(no_hidden, epochs)
+function [errors, success_rate] = jieter_test(no_hidden, epochs, debug)
     % TI2730B computational intelligence
     %
     % This is a function to be able to use local functions.
@@ -8,11 +8,15 @@ function [errors, success_rate] = jieter_test(no_hidden, epochs)
         no_hidden = 7;
     end
 
-    % Settings
-    debug = true;
 
     if nargin < 2
         epochs = 300;
+    end
+
+    if nargin < 3
+        debug = true;
+    else
+        debug = false;
     end
 
     learning_rate = 0.1;
@@ -87,27 +91,27 @@ function [errors, success_rate] = jieter_test(no_hidden, epochs)
         tic;
         fprintf('Running %d epochs over trainingset size %d,\nhidden neurons: %d,\n', ...
                 epochs, training_set_size, no_hidden);
+
+        figure
+
+        subplot(2, 1, 1);
+        w_ij_plt = imagesc(w_ij);
+        title('Hidden layer');
+
+        colormap(jet(10));
+        colorbar('location', 'eastoutside');
+        xlabel('hidden neuron');
+        ylabel('input neuron');
+
+        subplot(2, 1, 2);
+        w_jk_plt = imagesc(w_jk);
+        title('Output layer');
+
+        colormap(jet(10))
+        colorbar('location', 'eastoutside');
+        xlabel('output neuron');
+        ylabel('hidden neuron');
     end
-
-    figure
-
-    subplot(2, 1, 1);
-    w_ij_plt = imagesc(w_ij);
-    title('Hidden layer');
-
-    colormap(jet(10));
-    colorbar('location', 'eastoutside');
-    xlabel('hidden neuron');
-    ylabel('input neuron');
-
-    subplot(2, 1, 2);
-    w_jk_plt = imagesc(w_jk);
-    title('Output layer');
-
-    colormap(jet(10))
-    colorbar('location', 'eastoutside');
-    xlabel('output neuron');
-    ylabel('hidden neuron');
 
     % training
     for epoch = 1:epochs
@@ -181,37 +185,42 @@ function [errors, success_rate] = jieter_test(no_hidden, epochs)
         end
         validations(epoch) = mean(epoch_validations);
 
-        % update weight plot
-        set(w_jk_plt, 'CData', w_jk);
-        set(w_ij_plt, 'CData', w_ij);
-        drawnow;
+        if debug
+            % update weight plot
+            set(w_jk_plt, 'CData', w_jk);
+            set(w_ij_plt, 'CData', w_ij);
+            drawnow;
 
-        if debug && epochs > 2 && mod(epoch, epochs / 10) == 0
-            elapsed = toc;
 
-            fprintf('Epoch #%d, elapsed: %0.1fs, training: %0.6f, %0.6f \n', epoch, elapsed, errors(epoch), validations(epoch));
+            if epochs > 2 && mod(epoch, epochs / 10) == 0
+                elapsed = toc;
 
-            if epoch == epochs / 10
-                fprintf('  epoch 1-%d took %0.1fs, done in about %0.1fmin\n', ...
-                        epoch, elapsed, (elapsed * 9) / 60);
+                fprintf('Epoch #%d, elapsed: %0.1fs, training: %0.6f, %0.6f \n', epoch, elapsed, errors(epoch), validations(epoch));
+
+                if epoch == epochs / 10
+                    fprintf('  epoch 1-%d took %0.1fs, done in about %0.1fmin\n', ...
+                            epoch, elapsed, (elapsed * 9) / 60);
+                end
+                tic;
             end
-            tic;
         end
     end
 
     % Make a plot
-    figure
-    semilogy(1:length(errors), errors, 'b', 1:length(validations), validations, 'r');
-    title(sprintf('Learning curve %d epochs, training set: %d, hidden neurons: %d', ...
-                  epoch, training_set_size, no_hidden));
+    if debug
+        figure
+        semilogy(1:length(errors), errors, 'b', 1:length(validations), validations, 'r');
+        title(sprintf('Learning curve %d epochs, training set: %d, hidden neurons: %d', ...
+                      epoch, training_set_size, no_hidden));
 
-    xlabel('epochs');
-    ylabel('mean squared error');
-    legend('Training', 'Validation')
+        xlabel('epochs');
+        ylabel('mean squared error');
+        legend('Training', 'Validation')
 
-    filename = sprintf('plots/learning_curve-h%d-e%d-t%d', no_hidden, epoch, training_set_size);
-    print(strcat(filename, '.eps'), '-depsc');
-    print(strcat(filename, '.png'), '-dpng', '-r300');
+        filename = sprintf('plots/learning_curve-h%d-e%d-t%d', no_hidden, epoch, training_set_size);
+        print(strcat(filename, '.eps'), '-depsc');
+        print(strcat(filename, '.png'), '-dpng', '-r300');
+    end
 
     % pass a reference to the forward function
     function Y = forward_single_output(feature)
@@ -226,19 +235,23 @@ function [errors, success_rate] = jieter_test(no_hidden, epochs)
 
     if debug
         tic
-        success = 0;
-        actuals = zeros(test_set_size, no_outputs);
-        for i = 1:test_set_size
-            actual = classify_category(testset(i, :));
-            actuals(i, actual) = 1;
+    end
 
-            [~, expected] = max(test_targets(i, :));
+    success = 0;
+    actuals = zeros(test_set_size, no_outputs);
+    for i = 1:test_set_size
+        actual = classify_category(testset(i, :));
+        actuals(i, actual) = 1;
 
-            if actual == expected
-               success = success + 1;
-            end
+        [~, expected] = max(test_targets(i, :));
+
+        if actual == expected
+           success = success + 1;
         end
+    end
+    success_rate = success / test_set_size;
 
+    if debug
         fprintf('\nTesting time: %2.2fs.\n', toc);
 
         figure
@@ -251,7 +264,6 @@ function [errors, success_rate] = jieter_test(no_hidden, epochs)
         print(strcat(filename, '.eps'), '-depsc');
         print(strcat(filename, '.png'), '-dpng', '-r300');
 
-        success_rate = success / test_set_size;
         fprintf('Number of epochs:    %4d, training elements: %4d \n', epoch, training_set_size);
         fprintf('Number of tests:     %4d, hidden neurons:    %4d \n', test_set_size, no_hidden);
         fprintf('Number of successes: %4d, success rate:      %2.2f\n\n', success, success_rate);
