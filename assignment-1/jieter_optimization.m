@@ -1,17 +1,37 @@
 
 epochs = 10;
 no_tries = 4;
+min_hidden_neurons = 7;
+max_hidden_neurons = 10;
 
-fprintf('Make error plot for range of hidden neurons and %d tries.\n', no_tries);
+% margin for y axis
+margin = 0.002;
 
-data = zeros(30, no_tries);
-for hidden_neurons = 7:10
+fprintf('Make error plot for range of hidden neurons and %d tries, %d epochs.\n', no_tries, epochs);
+
+data = zeros(no_tries, max_hidden_neurons);
+for hidden_neurons = min_hidden_neurons:max_hidden_neurons
+    fprintf('Test with %d hidden neurons: ', hidden_neurons, epochs);
     for i = 1:no_tries
-        fprintf('Test hidden: %d, epochs: %d, try: %d\n', hidden_neurons, epochs, i);
-            
+
         [errors, success_rate] = jieter_test(hidden_neurons, epochs, false);
-        data(hidden_neurons, i) = success_rate;
+        data(i, hidden_neurons) = success_rate;
+        fprintf('.');
     end
+    fprintf('\n');
 end
 
-errorplot(data);
+% Make boxplot
+boxplot(data);
+
+xlim([min_hidden_neurons - 1, max_hidden_neurons + 1]);
+ylim([min(data(find(data))) * (1 - margin), max(max(data)) * (1 + margin)]);
+
+title('Success rate with different number of hidden neurons');
+xlabel('Number of hidden neurons');
+ylabel('Success rate');
+
+% Save to file
+filename = sprintf('plots/boxplot-tries%d-e%d-h%d-%d', no_tries, epochs, min_hidden_neurons, max_hidden_neurons);
+print(strcat(filename, '.eps'), '-depsc');
+print(strcat(filename, '.png'), '-dpng', '-r300');
