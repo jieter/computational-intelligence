@@ -1,4 +1,4 @@
-function [errors, success_rate] = jieter_ANN(no_hidden, epochs, debug)
+function [success_rate, w_ij, w_jk, threshold_hidden, threshold_outputs] = jieter_ANN(no_hidden, epochs, debug)
     % TI2730B computational intelligence
     %
     % This is a function to be able to use local functions.
