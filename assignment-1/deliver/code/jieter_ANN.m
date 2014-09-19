@@ -263,7 +263,7 @@ function [errors, success_rate] = jieter_ANN(no_hidden, epochs, debug)
         classified(1, i) = classify_category(unknown(i, :));
     end
 
-    dlmwrite(sprintf('output/5_classes_%0.4f.txt', success_rate), classified');
+    dlmwrite(sprintf('output/5_classes_%0.4f.txt', success_rate), classified);
 
     % Make a plot
     if debug || true
