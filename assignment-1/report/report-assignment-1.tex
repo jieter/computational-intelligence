@@ -53,7 +53,7 @@ Onze groepssgenoot is om persoonlijke redenen gestopt met het vak. Deze opdracht
 	$$Y^{sigmoid} = \left( \frac{1}{1 + e^{-X}} \right)$$
 
 	%5. Give a schematic diagram of your complete network
-	\item Ons netwerk kan voorgesteld worden als in het volgende plaatje. Daarbij kan het aantal hidden neurons uiteraard gevarieerd worden. \\
+	\item Ons netwerk kan voorgesteld worden als in het volgende plaatje, in dit geval met 10 \textit{hidden neurons}. Dit aantal kan uiteraard gevarieerd worden. \\
 
 	\begin{center}
 		\tikzstyle{neuron}=[draw=black!50,minimum size=20pt,inner sep=3pt]
@@ -114,10 +114,14 @@ Onze groepssgenoot is om persoonlijke redenen gestopt met het vak. Deze opdracht
 	\item Door te kijken naar de \textit{Mean square error} (MSE) op te trainingset, en op de validatieset. Zolang ze beide dalen, wordt het netwerk beter. Als de MSE op de trainingsset daalt, maar die op de validatieset gaat stijgen is er sprake van overfitting: het netwerk wordt beter in het herkennen van ruis in de trainingsset, maar niet beter in het herkennen van de algemene patronen.
 
 	% 8. When and why do you decide to end the training?
-	\item
+	\item Op het moment dat het netwerk overtrained dreigt te raken, dus wanneer de MSE niet langer daalt en en begint te stijgen, wordt de training gestopt, zodat het nog wel geschikt is voor andere data dan de trainingsset. Daarnaast is het handig voor de snelheid van het netwerk te stellen dat wanneer de MSE van het netwerk over tien epochs niet meer dan 0.1\% verschilt, ook het trainingsproces te beëindigen. Gebeurt dit niet, dan kan het nog erg lang doorgaan met optimaliseren, zonder dat er in het uiteindelijke resultaat verschil merkbaar is.
 
 	% 9. Train your network 10 times, each with different initial weights. How does the initialization impact the performance?
-	\item
+	\item Wanneer het netwerk tienmaal getraind wordt, komt hij iedere keer redelijk op dezelfde waarde voor de MSE uit. Slechts eenmaal laat hij een totaal andere curve zien. Dit komt waarschijnlijk doordat de geïnitialiseerde waardes van de gewichten en vergelijkingswaarden ver van een lokaal optimum liggen. Aan de andere lijnen valt te zien dat de meeste lokale optima dicht bij elkaar in de buurt liggen.
+    \begin{figure}[!ht]
+    	\centering
+        \includegraphics[width=.9\textwidth]{images/train-10-times-learning_rate}
+    \end{figure}
 
 	% 2.3 Optimization
 	% 10. Train your network with different amounts of hidden neurons. At least 3 times chosen within the range of 7-30 hidden neurons. Generate a plot of the final performance versus the number of hidden neurons in the network. (Hint: you can use the MATLAB command ❜boxplot' or 'errorbar' )
@@ -130,13 +134,18 @@ Onze groepssgenoot is om persoonlijke redenen gestopt met het vak. Deze opdracht
 
     Verder is duidelijk dat het op een gegeven moment geen zin meer heeft om nog meer \textit{hidden neurons} toe te voeggen, het resulterende netwerk heeft er geen significant betere performance door.
 
+    Wat ook interessant is om bij grotere aantallen neuronen te kijken naar de gewichten $w_{ij}$ en $w_jk$. Dat kan bijvoorbeeld met \verb|imagesc|. Er blijkt dan dat een deel van de neuronen bijna niet meer mee doet in de berekening van de output.
+
 
 	% 11. Pick the architecture with the best result and show a plot of the performance of the training set and the validation set during training, across epochs.
-	\item
-
+	\item TODO: voeg plaatje met beste performande architectuur toe, bijvoorbeeld 16 .
+	\begin{figure}[!ht]
+    	\centering
+        \includegraphics[width=.7\textwidth]{images/learning_curve}
+    \end{figure}
 	% 2.4 Evaluation
 	% 12. What is the success rate of your network on the test set? How does it compare to the results of the validation set?
-	\item
+	\item De \textit{success rate} van de testset is 0.91 $\pm 0.01$. Dit is vergelijkbaar met die van de validatieset. Het netwerk wordt echter wel geoptimaliseerd met behulp van de \textit{success rate} van de validatieset door de training te stoppen op het moment dat deze weer stijgt. Dit heeft ook een positief effect op de \textit{success rate} van de test set, maar het kan net buiten het optimum liggen. Dit is echter verwaarloosbaar in vergelijking met de verschillen tussen verschillende trainingsrondes.
 
 	% 13. Show a confusion matrix of your test set. How should it be read? Where did your network make the most mistakes? (Search for the meaning and purpose of a confusion matrix and use the function 'plotconfusion' from MATLAB).
 	\item Een confusionplot gemaakt met \verb|plotconfusion|. Op de $y$-as staan de output-classes zoals ons netwerk produceert. Op de $x$-as staat de verwachtingswaarde. Een juist voorspelde waarde staat dus op de diagonaal, in de groene cellen.  \\
@@ -150,6 +159,7 @@ Onze groepssgenoot is om persoonlijke redenen gestopt met het vak. Deze opdracht
 	% 14. Feed the unknown set (provided on Blackboard) to the network. Export the resulting classes as a comma-separated file exactly as detailed in section 1.2.
 	\item Geüpload naar blackboard als \verb|5_classes.txt|
 
+\pagebreak
 	% 2.5 Matlab's Toolbox
 	% 15. Use the Toolbox to create a network similar to the one you’ve just made. (You can start the toolbox GUI with 'nnstart' or directly go to pattern recognition with 'nprtool').
 	\item Met \verb|nprtool| is het binnen een paar minuten mogelijk om een netwerk te maken wat er zo uitziet:
@@ -160,10 +170,11 @@ Onze groepssgenoot is om persoonlijke redenen gestopt met het vak. Deze opdracht
 	\end{figure}
 
 	% 16. Comment on the differences between your network’s performance and the Toolbox.
-	\item De performance van dit netwerk is erg goed, en de training is ook erg snel klaar. Ook met 10 hidden neurons worden succes-percentages van boven de $90\%$ gehaald.
+	\item De performance van dit netwerk is erg goed, en de training is ook erg snel klaar. Ook met 10 hidden neurons worden succes-percentages van rond de $92\%$ gehaald.
 
 	Tijdens het maken van het eigen neurale netwerk had ik het idee dat het gebruiken van de sigmoid-activatiefunctie wellicht voor de output-layer niet handig was. Dit netwerk gebruikt een softmax activatiefunctie in de output-layer, wellicht ook een reden van betere prestaties.
 
 	De veel hogere trainingsefficientie is waarschijnlijk verklaarbaar door bijvoorbeeld implementatie in correcte matrix-algebra en het toevoegen van het aanpassen van de \textit{learning rate}, het toevoegen van een momentum-term in de delta-rule (Negnevitsky, equation 6.17).
 \end{enumerate}
 \end{document}
+
