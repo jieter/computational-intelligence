@@ -18,7 +18,7 @@ for hidden_neurons = min_hidden_neurons:max_hidden_neurons
 
         fprintf('.');
         save(sprintf('networks/network-weights-%0.5f.mat', success_rate), ...,
-        	 'w_ij', 'w_jk', 'threshold_output', 'threshold_hidden');
+        	 'success_rate', 'w_ij', 'w_jk', 'threshold_output', 'threshold_hidden');
     end
     fprintf('\n');
 end
