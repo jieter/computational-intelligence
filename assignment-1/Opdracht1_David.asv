@@ -76,7 +76,7 @@ stop = 0;
 
 
 
-while mse(epoch) > 10^(-4) && epoch < 10 && stop == 0 
+while mse(epoch) > 10^(-4) && epoch < 100 && stop == 0 
     epoch = epoch + 1;
     msqe = zeros(1,length(training_set));
     for h = 1:length(training_set)
@@ -169,39 +169,47 @@ while mse(epoch) > 10^(-4) && epoch < 10 && stop == 0
     %Show the result of the validation
     validation_class = vec2ind(validation_output');
     validation_fout(epoch) = nnz(validation_class - validation_B');
-    validation_mse(epoch,cycle) = mean(validation_msqe);
+    validation_mse(epoch) = mean(validation_msqe);
     
 end
-validation_prestatie(cycle) = 1 - mean(nonzeros(validation_fout'))/length(validation_set);
+validation_prestatie = 1 - mean(nonzeros(validation_fout'))/length(validation_set);
 test_david;
+ 
+if test_prestatie > test_prestatie_best
+    wij_best = wij;
+    wjk_best = wjk;
+    treshold_ol_best = treshold_ol;
+    treshold_hl_best = treshold_hl;
+    test_prestatie_best = test_prestatie;
+end
+
 end
 clear h i j weight
 
-figure
-x = 1:length(mse);
-semilogy(x,mse)
-hold on
-semilogy(1:length(validation_mse),validation_mse,'r');
-
-figure
-plot(1:length(validation_fout),validation_fout);
-
-figure
-for i = 1:10
-    hold all
-    semilogy(validation_mse(:,i));
-end
-%make the figure more clear
-legend('1','2','3','4','5','6','7','8','9','10');
-title('The change of the MSE for different initial values');
-xlabel('number of epochs');
-ylabel('Mean-square error');
-
-%define the class
-class = vec2ind(output');
-test = class' - B(1:length(class));
-prestatie = 1 - nnz(test)/length(class);
+% figure
+% x = 1:length(mse);
+% semilogy(x,mse)
+% hold on
+% semilogy(1:length(validation_mse),validation_mse,'r');
+% 
+% figure
+% plot(1:length(validation_fout),validation_fout);
+% 
+% figure
+% for i = 1:10
+%     hold all
+%     semilogy(validation_mse(:,i));
+% end
+% %make the figure more clear
+% legend('1','2','3','4','5','6','7','8','9','10');
+% title('The change of the MSE for different initial values');
+% xlabel('number of epochs');
+% ylabel('Mean-square error');
+% 
+% %define the class
+% class = vec2ind(output');
+% test = class' - B(1:length(class));
+% prestatie = 1 - nnz(test)/length(class);
 
 toc
 
-test_david;

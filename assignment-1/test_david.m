@@ -23,7 +23,6 @@ class = zeros(1,length(test_set));
 
 class = vec2ind(output');
     validation = class' - test_B;
-    test_prestatie = 1 - nnz(validation)/length(test_B);
-    
+test_prestatie = 1 - nnz(validation)/length(test_B);    
     
    
