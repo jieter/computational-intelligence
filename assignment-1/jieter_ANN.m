@@ -5,11 +5,11 @@ function [errors, success_rate] = jieter_ANN(no_hidden, epochs, debug)
     % Jan Pieter Waagmeester
 
     if nargin < 1
-        no_hidden = 7;
+        no_hidden = 18;
     end
 
     if nargin < 2
-        epochs = 300;
+        epochs = 150;
     end
 
     if nargin < 3
