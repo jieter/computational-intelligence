@@ -1,8 +1,11 @@
+% TI2730B computational intelligence
+%
+% Jan Pieter Waagmeester
 
 epochs = 100;
-no_tries = 10;
-min_hidden_neurons = 7;
-step = 3;
+no_tries = 5;
+min_hidden_neurons = 18;
+step = 1;
 max_hidden_neurons = 30;
 
 % margin for y axis
@@ -16,18 +19,17 @@ for hidden_neurons = min_hidden_neurons:step:max_hidden_neurons
     fprintf('Test with %d hidden neurons: ', hidden_neurons);
     for i = 1:no_tries
 
-        [errors, success_rate] = jieter_test(hidden_neurons, epochs, false);
+        [errors, success_rate] = jieter_ANN(hidden_neurons, epochs, false);
         data(i, hidden_neurons) = success_rate;
         fprintf('.');
     end
     fprintf('\n');
 end
 
-% Make boxplot
+% Make boxplot with a line along the sample mean
 hold on;
 
 plot(7:30, mean(data(:, 7:30)), ':b')
-
 boxplot(data);
 
 xlim([min_hidden_neurons - 0.9, max_hidden_neurons + 0.9]);

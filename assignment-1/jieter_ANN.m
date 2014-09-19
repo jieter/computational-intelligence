@@ -1,4 +1,4 @@
-function [errors, success_rate] = jieter_test(no_hidden, epochs, debug)
+function [errors, success_rate] = jieter_ANN(no_hidden, epochs, debug)
     % TI2730B computational intelligence
     %
     % This is a function to be able to use local functions.
@@ -7,7 +7,6 @@ function [errors, success_rate] = jieter_test(no_hidden, epochs, debug)
     if nargin < 1
         no_hidden = 7;
     end
-
 
     if nargin < 2
         epochs = 300;
@@ -168,12 +167,16 @@ function [errors, success_rate] = jieter_test(no_hidden, epochs, debug)
             fprintf('MSE < %f, quitting.\n', mse_threshold);
             break;
         end
-        % if epoch > 2
-        %     if errors(epoch) > errors(epoch - 1)
-        %         fprintf('error increasing, quitting');
-        %         break;
-        %     end
-        % end
+         if epoch > 3
+            if errors(epoch) > errors(epoch - 1) && errors(epoch - 1) > errors(epoch - 2)
+                fprintf('MSE in trainingsset increasing for two epochs, quitting training...');
+                break;
+            end
+
+            if validations(epoch) > validations(epoch)
+                fprintf('MSE in validationset increasing, quitting training...');
+            end
+        end
 
         % Validation;
         epoch_validations = zeros(1, validation_set_size);
@@ -206,21 +209,6 @@ function [errors, success_rate] = jieter_test(no_hidden, epochs, debug)
         end
     end
 
-    % Make a plot
-    if debug
-        figure
-        semilogy(1:length(errors), errors, 'b', 1:length(validations), validations, 'r');
-        title(sprintf('Learning curve %d epochs, training set: %d, hidden neurons: %d', ...
-                      epoch, training_set_size, no_hidden));
-
-        xlabel('epochs');
-        ylabel('mean squared error');
-        legend('Training', 'Validation')
-
-        filename = sprintf('plots/learning_curve-h%d-e%d-t%d', no_hidden, epoch, training_set_size);
-        print(strcat(filename, '.eps'), '-depsc');
-        print(strcat(filename, '.png'), '-dpng', '-r300');
-    end
 
     % pass a reference to the forward function
     function Y = forward_single_output(feature)
@@ -260,12 +248,35 @@ function [errors, success_rate] = jieter_test(no_hidden, epochs, debug)
         title(sprintf('Confusion matrix (testset) %d epochs, training set: %d, hidden neurons: %d', ...
                       epoch, training_set_size, no_hidden));
 
-        filename = sprintf('plots/confusion-matrix-h%d-e%d-t%d', no_hidden, epoch, training_set_size);
+        filename = sprintf('output/confusion-matrix-h%d-e%d-t%d', no_hidden, epoch, training_set_size);
         print(strcat(filename, '.eps'), '-depsc');
         print(strcat(filename, '.png'), '-dpng', '-r300');
 
         fprintf('Number of epochs:    %4d, training elements: %4d \n', epoch, training_set_size);
         fprintf('Number of tests:     %4d, hidden neurons:    %4d \n', test_set_size, no_hidden);
         fprintf('Number of successes: %4d, success rate:      %2.2f\n\n', success, success_rate);
+    end
+
+    unknown = dlmread('data/unknown.txt');
+    classified = zeros(1, length(unknown));
+    for i = 1:length(unknown)
+        classified(1, i) = classify_category(unknown(i, :));
+    end
+
+    dlmwrite(sprintf('output/5_classes_%0.4f.txt', success_rate), classified');
+
+    % Make a plot
+    if debug || true
+        figure
+        semilogy(1:length(errors), errors, 'b', 1:length(validations), validations, 'r');
+        title(sprintf('Learning curve %d epochs, training set: %d, hidden neurons: %d', ...
+                      epoch, training_set_size, no_hidden));
+
+        xlabel('epochs');
+        ylabel('mean squared error');
+        legend('Training', 'Validation')
+
+        filename = sprintf('output/learning_curve-%0.4f.eps', success_rate);
+        print(filename, '-depsc');
     end
 end
