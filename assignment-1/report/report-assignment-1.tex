@@ -20,6 +20,14 @@
 % colorlinks to remove ugly boxes around links...
 % \usepackage[colorlinks]{hyperref}
 
+\makeatletter
+\newcommand*{\centerfloat}{%
+  \parindent \z@
+  \leftskip \z@ \@plus 1fil \@minus \textwidth
+  \rightskip\leftskip
+  \parfillskip \z@skip}
+\makeatother
+
 \usepackage{enumerate}
 
 \usepackage{subfigure}
@@ -36,7 +44,7 @@
 
 \begin{document}
 \maketitle
-Onze groepssgenoot is om persoonlijke redenen gestopt met het vak. Deze opdracht hebben we met ons tweeën gemaakt.
+{\small Onze groepssgenoot is om persoonlijke redenen gestopt met het vak. Deze opdracht hebben we met ons tweeën gemaakt.}
 
 \begin{enumerate}[1.]
 	% 1. How many input neurons are needed for this assignment?
@@ -119,47 +127,50 @@ Onze groepssgenoot is om persoonlijke redenen gestopt met het vak. Deze opdracht
 	% 9. Train your network 10 times, each with different initial weights. How does the initialization impact the performance?
 	\item Wanneer het netwerk tienmaal getraind wordt, komt hij iedere keer redelijk op dezelfde waarde voor de MSE uit. Slechts eenmaal laat hij een totaal andere curve zien. Dit komt waarschijnlijk doordat de geïnitialiseerde waardes van de gewichten en vergelijkingswaarden ver van een lokaal optimum liggen. Aan de andere lijnen valt te zien dat de meeste lokale optima dicht bij elkaar in de buurt liggen.
     \begin{figure}[!ht]
-    	\centering
-        \includegraphics[width=.9\textwidth]{images/train-10-times-learning_rate}
+    	\centerfloat
+        \includegraphics[width=1.35\textwidth]{images/train-10-times-learning_rate}
     \end{figure}
 
+    \pagebreak
 	% 2.3 Optimization
 	% 10. Train your network with different amounts of hidden neurons. At least 3 times chosen within the range of 7-30 hidden neurons. Generate a plot of the final performance versus the number of hidden neurons in the network. (Hint: you can use the MATLAB command ❜boxplot' or 'errorbar' )
 	\item We hebben 23 verschillende netwerken, met 7 - 30 \textit{hidden neurons} 10 keer getraind. De succes-ratio van die netwerken hebben we verwerkt in de volgende boxplots:
     \begin{figure}[!ht]
     	\centering
-        \includegraphics[width=.9\textwidth]{images/error-boxplot}
+        \includegraphics[width=1\textwidth]{images/error-boxplot}
     \end{figure}
     Hieruit blijkt ondermeer dat de performance ook bij een klein aantal \textit{hidden neurons} nog best goed is. Naast dit plaatje hebben we nog gekeken naar kleinere aantallen en zelfs met 4 \textit{hidden neurons} wordt in gemiddeld $85\%$ van de gevallen nog een correcte indeling in klassen gemaakt.
 
     Verder is duidelijk dat het op een gegeven moment geen zin meer heeft om nog meer \textit{hidden neurons} toe te voeggen, het resulterende netwerk heeft er geen significant betere performance door.
 
-    Wat ook interessant is om bij grotere aantallen neuronen te kijken naar de gewichten $w_{ij}$ en $w_jk$. Dat kan bijvoorbeeld met \verb|imagesc|. Er blijkt dan dat een deel van de neuronen bijna niet meer mee doet in de berekening van de output.
+    Wat ook interessant is om bij grotere aantallen neuronen te kijken naar de gewichten $w_{ij}$ en $w_jk$. Dat kan bijvoorbeeld met \verb|imagesc|. Er blijkt dan dat een deel van de neuronen bijna niet meer mee doet in de berekening van de output. Helaas is er in dit verslag geen ruimte voor plaatjes hiervan, laat staan voor een animatie van de plaatjes gedurdende de training.
 
-
+    \pagebreak
 	% 11. Pick the architecture with the best result and show a plot of the performance of the training set and the validation set during training, across epochs.
-	\item TODO: voeg plaatje met beste performande architectuur toe, bijvoorbeeld 16 .
+	\item Hier een afbeelding van een netwerk met 19 \textit{hidden neurons}. In de voorgaande boxplot kwam 18 hidden neurons beter uit de bus, maar dit was de beste prestatie uit een groot aantal runs en het netwerk wat we gebruikt hebben om de class van de set \verb|unknown.txt| te bepalen.
 	\begin{figure}[!ht]
     	\centering
-        \includegraphics[width=.7\textwidth]{images/learning_curve}
+        \includegraphics[width=.8\textwidth]{images/learning_curve}
     \end{figure}
-	% 2.4 Evaluation
+
+    	% 2.4 Evaluation
 	% 12. What is the success rate of your network on the test set? How does it compare to the results of the validation set?
 	\item De \textit{success rate} van de testset is 0.91 $\pm 0.01$. Dit is vergelijkbaar met die van de validatieset. Het netwerk wordt echter wel geoptimaliseerd met behulp van de \textit{success rate} van de validatieset door de training te stoppen op het moment dat deze weer stijgt. Dit heeft ook een positief effect op de \textit{success rate} van de test set, maar het kan net buiten het optimum liggen. Dit is echter verwaarloosbaar in vergelijking met de verschillen tussen verschillende trainingsrondes.
 
 	% 13. Show a confusion matrix of your test set. How should it be read? Where did your network make the most mistakes? (Search for the meaning and purpose of a confusion matrix and use the function 'plotconfusion' from MATLAB).
-	\item Een confusionplot gemaakt met \verb|plotconfusion|. Op de $y$-as staan de output-classes zoals ons netwerk produceert. Op de $x$-as staat de verwachtingswaarde. Een juist voorspelde waarde staat dus op de diagonaal, in de groene cellen.  \\
+	\item Een confusionplot gemaakt met \verb|plotconfusion| (zie volgende pagina). Op de $y$-as staan de output-classes zoals ons netwerk produceert. Op de $x$-as staat de verwachtingswaarde. Een juist voorspelde waarde staat dus op de diagonaal, in de groene cellen.  \\
     Verder is er ook uit af te lezen dat in dit geval het netwerk 20 keer een 4 voorspelde, terwijl het een 7 had moeten zijn. Dat is een duidelijke uitschieter waar verder voornamelijk fouten onder de 10 staan.
 
 	\begin{figure}[!ht]
     	\centering
-        \includegraphics[width=.8\textwidth]{images/confusion-matrix-eps}
+        \includegraphics[width=.65\textwidth]{images/confusion-matrix-eps}
     \end{figure}
 
 	% 14. Feed the unknown set (provided on Blackboard) to the network. Export the resulting classes as a comma-separated file exactly as detailed in section 1.2.
 	\item Geüpload naar blackboard als \verb|5_classes.txt|
 
-\pagebreak
+
+	\pagebreak
 	% 2.5 Matlab's Toolbox
 	% 15. Use the Toolbox to create a network similar to the one you’ve just made. (You can start the toolbox GUI with 'nnstart' or directly go to pattern recognition with 'nprtool').
 	\item Met \verb|nprtool| is het binnen een paar minuten mogelijk om een netwerk te maken wat er zo uitziet:
