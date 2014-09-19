@@ -4,6 +4,8 @@ Practicum van David Akkerman en Jan Pieter Waagmeester.
 
 We hebben de opdracht redelijk afzonderlijk van elkaar uitgevoerd en dus twee afzonderlijk werkende programma's.
 
+`main.m` roept een van de twee programma's aan.
+
 
 ## Notes
 

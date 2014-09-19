@@ -1,4 +1,4 @@
-function [success_rate, w_ij, w_jk, threshold_hidden, threshold_outputs] = jieter_ANN(no_hidden, epochs, debug)
+function [success_rate, w_ij, w_jk, threshold_hidden, threshold_outputs] = jieter_ANN(no_hidden, epochs, debug_on)
     % TI2730B computational intelligence
     %
     % This is a function to be able to use local functions.
@@ -13,9 +13,7 @@ function [success_rate, w_ij, w_jk, threshold_hidden, threshold_outputs] = jiete
     end
 
     if nargin < 3
-        debug = true;
-    else
-        debug = false;
+        debug_on = true;
     end
 
     learning_rate = 0.1;
@@ -87,7 +85,7 @@ function [success_rate, w_ij, w_jk, threshold_hidden, threshold_outputs] = jiete
     validations = zeros(1, epochs);
     epoch_errors = zeros(1, training_set_size);
 
-    if debug
+    if debug_on
         tic;
         fprintf('Running %d epochs over trainingset size %d,\nhidden neurons: %d,\n', ...
                 epochs, training_set_size, no_hidden);
@@ -188,7 +186,7 @@ function [success_rate, w_ij, w_jk, threshold_hidden, threshold_outputs] = jiete
         end
         validations(epoch) = mean(epoch_validations);
 
-        if debug
+        if debug_on
             % update weight plot
             set(w_jk_plt, 'CData', w_jk);
             set(w_ij_plt, 'CData', w_ij);
@@ -221,7 +219,7 @@ function [success_rate, w_ij, w_jk, threshold_hidden, threshold_outputs] = jiete
 
     classify = @forward_single_output;
 
-    if debug
+    if debug_on
         tic
     end
 
@@ -239,7 +237,7 @@ function [success_rate, w_ij, w_jk, threshold_hidden, threshold_outputs] = jiete
     end
     success_rate = success / test_set_size;
 
-    if debug
+    if debug_on
         fprintf('\nTesting time: %2.2fs.\n', toc);
 
         figure
@@ -266,7 +264,7 @@ function [success_rate, w_ij, w_jk, threshold_hidden, threshold_outputs] = jiete
     dlmwrite(sprintf('output/5_classes_%0.4f.txt', success_rate), classified);
 
     % Make a plot
-    if debug || true
+    if debug_on
         figure
         semilogy(1:length(errors), errors, 'b', 1:length(validations), validations, 'r');
         title(sprintf('Learning curve %d epochs, training set: %d, hidden neurons: %d', ...
