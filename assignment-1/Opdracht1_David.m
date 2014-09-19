@@ -29,12 +29,21 @@ training_B = B(1:4000);
 validation_B = B(4001:5500);
 test_B = B(5501:length(B));
 
+validation_mse = zeros(1,250);
+%validation_mse(1) = 1;
+
+for cycle = 1:10
+
 wij = zeros(hidden_neurons,10);
 wjk = zeros(7,hidden_neurons);
 treshold_hl = zeros(1,hidden_neurons);
 treshold_ol = zeros(1,7);
-mse = zeros(1,400);
+mse = zeros(1,250);
 output = zeros(length(training_set),7);
+
+validation_msqe = zeros(1,length(validation_set));
+validation_output = zeros(length(validation_set),7);
+validation_fout = zeros(1,250);
 
 %initial weights are random numbers from -1 to 1 for ten hidden neurons
 for gewicht = 1:hidden_neurons
@@ -44,16 +53,15 @@ for gewicht = 1:hidden_neurons
     
     for gewwicht = 1:7
         wjk(gewwicht,gewicht) = 2*rand - 1;
+        treshold_ol(gewwicht) = 4*rand - 2;
     end
     
     %tresholds are randum numbers from -2 to 2 for two layers
-    treshold_hl(:,gewicht) = 4*rand - 2;
+    treshold_hl(gewicht) = 4*rand - 2;
     
 end
 clear gewicht gewwicht
-for gewicht = 1:7
-    treshold_ol(:,gewicht) = 4*rand - 2;
-end
+
 %Ten input neurons; one for each sample
 
 weighted_sum_ij = zeros(1,hidden_neurons);
@@ -65,10 +73,10 @@ delta_j = zeros(1,hidden_neurons);
 epoch = 1;
 mse(1) = 1;
 stop = 0;
-validation_mse = zeros(1,250);
 
 
-while mse(epoch) > 10^(-4) && epoch < 250 && stop == 0 %&& alpha > 10^-6
+
+while mse(epoch) > 10^(-4) && epoch < 100 && stop == 0 
     epoch = epoch + 1;
     msqe = zeros(1,length(training_set));
     for h = 1:length(training_set)
@@ -127,11 +135,7 @@ while mse(epoch) > 10^(-4) && epoch < 250 && stop == 0 %&& alpha > 10^-6
             alpha = alpha / 1.3;
         end
     end
-    if epoch > 40
-        if abs(mse(epoch) - mse(epoch - 10)) < mse(epoch)/10; %Stops the looop when the mean square error doesn't change anymore
-            stop = 1;
-        end
-    end
+   
     
     disp(epoch); disp(mse(epoch));
     
@@ -154,9 +158,24 @@ while mse(epoch) > 10^(-4) && epoch < 250 && stop == 0 %&& alpha > 10^-6
         
     end
     
+    if epoch > 40
+        if abs(mse(epoch) - mse(epoch - 10)) < mse(epoch)/1000 || (validation_fout(epoch) >= validation_fout(epoch - 1) && validation_fout(epoch - 1) >= validation_fout(epoch -2)) 
+            %Stops the looop when the mean square error doesn't change
+            %anymore or when the validation_mse starts rising again.
+            stop = 1;
+        end
+    end
+    
+    %Show the result of the validation
     validation_class = vec2ind(validation_output');
     validation_fout(epoch) = nnz(validation_class - validation_B');
-    validation_mse(epoch) = mean(validation_msqe);
+    validation_mse(epoch,cycle) = mean(validation_msqe);
+    
+end
+%validation_prestatie(cycle) = 1 - mean(nonzeros(validation_fout'))/length(validation_set);
+%test_david;
+ %   test_prestatie(cycle) = 1 - nnz(validation)/length(test_B);
+
 end
 clear h i j weight
 
@@ -169,6 +188,17 @@ semilogy(1:length(validation_mse),validation_mse,'r');
 figure
 plot(1:length(validation_fout),validation_fout);
 
+figure
+for i = 1:10
+    hold all
+    semilogy(validation_mse(:,i));
+end
+%make the figure more clear
+legend('1','2','3','4','5','6','7','8','9','10');
+title('The change of the MSE for different initial values');
+xlabel('number of epochs');
+ylabel('Mean-square error');
+
 %define the class
 class = vec2ind(output');
 test = class' - B(1:length(class));
@@ -176,4 +206,3 @@ prestatie = 1 - nnz(test)/length(class);
 
 toc
 
-Validatie_david;
