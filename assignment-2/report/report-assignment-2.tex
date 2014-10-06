@@ -33,6 +33,8 @@
 \usepackage{tikz}
 \usetikzlibrary{arrows,automata, shapes}
 
+\usepackage{todonotes}
+
 \title{TI2736-A Assignment 2:  Bayesan network}
 
 \author{
@@ -111,7 +113,7 @@
                         P(F|VH) \cdot P(V) \cdot P(H) +
                         P(F|V \lnot H) \cdot P(V) \cdot P(\lnot H)
                       }{
-                        \left( \parbox{10cm}{
+                        \left( \parbox{9cm}{
                             $$P(F|VH) \cdot P(V) \cdot P(H) +
                             P(F|V \lnot H) \cdot P(V) \cdot P(\lnot H) +$$
                             $$P(F|\lnot VH) \cdot P(\lnot V) \cdot P(H) +
@@ -132,14 +134,34 @@
         \begin{align*}
             P(V |M, F)
                 & = \frac{P(M,F|V)\cdot P(V)}{P(M,F)} \\
-                & = \frac{P(M|V)\cdot P(F|V)\cdot P(V)}{P(M)\cdot P(F)} \\
-                & = \frac{P(M|V)\cdot P(V)\cdot P(F|VH)\cdot P(H) + P(M|V)\cdot P(V)\cdot P(V\lnot H)\cdot P(\lnot H)}{P(M|V)\cdot P(V)\cdot P(F|VH)\cdot P(H) + P(M|V)\cdot P(V)\cdot P(V\lnot H)\cdot P(\lnot H) + }
-        \end{align*}
+                & = \frac{P(M|V)\cdot P(F|V)\cdot P(V)}{P(M,F|V)\cdot P(V) + P(M,F|\lnot V)\cdot P(\lnot V)} \\
+                & = \frac{
+                        P(M|V)\cdot P(V) \cdot P(F|VH)\cdot P(H) + P(M|V)\cdot P(V)\cdot P(F|V\lnot H)\cdot P(\lnot H)
+                    }{
+                      \left(
+                            \parbox{12cm}{
+                    $$P(M|V)\cdot P(V) \cdot P(F|VH)\cdot P(H) + P(M|V)\cdot P(V)\cdot P(F|V\lnot H)\cdot P(\lnot H) + $$
+                           $$ P(M|\lnot V)\cdot P(\lnot V)\cdot P(F|\lnot VH)\cdot P(H) + P(M|\lnot V)\cdot P(\lnot V)\cdot P(F|\lnot V\lnot H)\cdot P(\lnot H) $$
+                     } \right)
+                    } \\
+       \end{align*}
 
     % 15. Compute the chance that the customer is a vegetarian, given that he does want to purchase fruit, but no meat (P (V |F ¬M )).
     \item
         \begin{align*}
-            P(V |F, \neg M) & = \\
+            P(V |\lnot M, F)
+                & = \frac{P(\lnot M,F|V)\cdot P(V)}{P(\lnot M,F)} \\
+                & = \frac{P(\lnot M|V)\cdot P(F|V)\cdot P(V)}{P(\lnot M,F|V)\cdot P(V) + P(\lnot M,F|\lnot V)\cdot P(\lnot V)} \\
+                & = \frac{
+                        P(\lnot M|V)\cdot P(V) \cdot P(F|VH)\cdot P(H) + P(\lnot M|V)\cdot P(V)\cdot P(F|V\lnot H)\cdot P(\lnot H)
+                    }{
+                      \left(
+                            \parbox{12.5cm}{
+                    $$P(\lnot M|V)\cdot P(V) \cdot P(F|VH)\cdot P(H) + P(\lnot M|V)\cdot P(V)\cdot P(F|V\lnot H)\cdot P(\lnot H) + $$
+                           $$ P(\lnot M|\lnot V)\cdot P(\lnot V)\cdot P(F|\lnot VH)\cdot P(H) + P(\lnot M|\lnot V)\cdot P(\lnot V)\cdot P(F|\lnot V\lnot H)\cdot P(\lnot H) $$
+                     } \right)
+                    } \\
+                    & = 0,71
         \end{align*}
 
 
@@ -187,8 +209,7 @@
 
     \tikzstyle{every node}=[
             draw, ellipse, minimum width=1.5cm, minimum height=1cm, align=center]
-    \begin{centering}
-
+    \begin{center}
         \begin{tikzpicture}[node distance=3cm, auto, bend angle=45]
             \node (M) {M};
             \node (H) [right of=M] {H};
@@ -202,7 +223,7 @@
                 (H) edge (E1)
                     edge (E3);
         \end{tikzpicture}
-    \end{centering}
+    \end{center}
 
     % 20. write down all the conditional- and a-priori probabilities.
     \item
@@ -225,7 +246,7 @@
     % 21. Expand the network with the given probabilities. Make a diagram of the nodes with arrows indicating the direction of influence (H = Healthy, M = Married, C = Children, V = Vegetarian, F = Female).
      \item Hier de afbeelding uitgebreid met de gegeven kansen.
 
-    \begin{centering}
+    \begin{center}
         \begin{tikzpicture}[node distance=2.6cm, auto,scale=0.5]
 
             \node (M) {\textbf{M}arried};
@@ -258,7 +279,7 @@
                 (F) edge (E4)
                     edge (E7);
         \end{tikzpicture}
-    \end{centering}
+    \end{center}
 
     % 22. Make a screenshot of your network for in the report.
     \item In GeNIe ziet het er dan als volgt uit:
