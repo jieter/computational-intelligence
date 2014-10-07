@@ -1,5 +1,4 @@
 import matplotlib.pyplot as plt
-import numpy as np
 
 
 class Visualizer(object):
@@ -15,14 +14,12 @@ class Visualizer(object):
 
         self.update()
 
-
     def update(self):
         self.ax.imshow(self.maze.numerical(),
-                  extent=[0, self.maze.width, 0, self.maze.height],
-                  interpolation='nearest')
+                       extent=[0, self.maze.width, 0, self.maze.height],
+                       interpolation='nearest')
 
         plt.show()
-
 
 
 if __name__ == '__main__':
@@ -31,4 +28,3 @@ if __name__ == '__main__':
     maze = Maze.from_file('../data/easy-maze.txt')
     print maze
     Visualizer(maze)
-

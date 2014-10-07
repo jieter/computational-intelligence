@@ -12,7 +12,7 @@ DIRECTIONS = {
 class Maze(object):
     WALKABLE = (1, 's', 'e')
 
-    def __init__(self, size=None, maze=None, start=None, end=None, name='None'):
+    def __init__(self, size=None, maze=None, start=None, end=None, name=None):
         # if size not defined, use input size.
         if size is None:
             assert maze is not None, 'supply size or maze'
@@ -163,4 +163,4 @@ if __name__ == '__main__':
     # print Maze.from_file('../data/medium-maze.txt')
     # print Maze.from_file('../data/hard-maze.txt')
 
-    #print test_mazes['corner']
+    # print test_mazes['corner']
