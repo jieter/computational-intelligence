@@ -2,20 +2,33 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-def visualize_maze(maze):
-    plt.close('all')
-    fig, ax = plt.subplots()
+class Visualizer(object):
 
-    ax.imshow(maze.numerical(), extent=[0, maze.width, 0, maze.height],
-              interpolation='nearest')
-    ax.set_title(maze.name)
+    def __init__(self, maze):
+        self.maze = maze
 
-    plt.show()
+        plt.close('all')
+
+        self.fig, self.ax = plt.subplots()
+        self.ax.set_title(maze.name)
+        plt.axis('off')
+
+        self.update()
+
+
+    def update(self):
+        self.ax.imshow(self.maze.numerical(),
+                  extent=[0, self.maze.width, 0, self.maze.height],
+                  interpolation='nearest')
+
+        plt.show()
+
+
 
 if __name__ == '__main__':
     from maze import Maze
 
     maze = Maze.from_file('../data/easy-maze.txt')
     print maze
-    visualize_maze(maze)
+    Visualizer(maze)
 
