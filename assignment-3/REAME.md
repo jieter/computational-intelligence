@@ -1,5 +1,7 @@
 # Assignment 3
 
+http://en.wikipedia.org/wiki/Ant_colony_optimization_algorithms
+
 ## Inleveren:
 
  - The source code of your (Part 1) program as a compressed archive, with a name of the

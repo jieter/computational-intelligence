@@ -3,12 +3,21 @@
 
 
 class Maze(object):
+    WALKABLE = (1, 's', 'e')
 
-    def __init__(self, width, height, maze=None, start=None, end=None):
-        self.width = int(width)
-        self.height = int(height)
+    def __init__(self, size=None, maze=None, start=None, end=None):
+        print 'start new Maze'
+        # if size not defined, use input size.
+        if size is None:
+            assert maze is not None, 'supply size or maze'
+            self.height = len(maze)
+            self.width = len(maze[0])
+        else:
+            self.width, self.height = map(int, size)
 
-        self.maze = maze or []
+        self.maze = list(map(list, maze)) or []
+
+        print self.maze
 
         if start is not None:
             self.set_start(start)
@@ -28,7 +37,11 @@ class Maze(object):
 
     def set_at(self, point, s):
         '''Set val `s` at `point`'''
+        print 'set_at', point, s
         self.maze[point[1]][point[0]] = s
+
+    def walkable(self, point):
+        return self.maze[point[1]][point[0]] in Maze.WALKABLE
 
     def set_start(self, point):
         point = map(int, point)
@@ -66,7 +79,7 @@ class Maze(object):
         )
 
     def to_file(self):
-        conv = lambda x: '1' if x in (1, 's', 'e') else '0'
+        conv = lambda x: '1' if x in Maze.WALKABLE else '0'
         return '%d %d\n%s' % (
             self.width,
             self.height,
@@ -76,12 +89,9 @@ class Maze(object):
     @staticmethod
     def from_file(filename):
         with open(filename) as f:
-            width, height = f.readline().split(' ')
-
-            maze = Maze(width, height)
+            maze = Maze(f.readline().split(' '))
             for row in f:
                 maze.add_row(row.split(' '))
-
 
         '''Read start and end coordinates'''
         with open(filename.replace('maze.txt', 'coordinates.txt')) as f:
@@ -92,27 +102,31 @@ class Maze(object):
 
 
 street_in_middle = [0] * 4 + [1] + [0] * 5
-
 loop_top = [1] * 6 + [0] * 4
 loop_row1 = [1] + [0] * 4 + [1] + [0] * 4
 loop_row2 = [0] * 5 + [1] + [0] * 3 + [1]
+
 testMazes = {
+    'empty': Maze(
+        maze=[[1] * 10] * 10,
+        start=(0, 0),
+        end=(9, 9)
+    ),
     'street': Maze(
-        10, 3,
         maze=[[0] * 10, [1] * 10, [0] * 10],
         start=(0, 1),
         end=(9, 1)
     ),
     'cross': Maze(
-        10, 10,
-        maze=[street_in_middle, street_in_middle, street_in_middle,
-              street_in_middle, [1] * 10, street_in_middle,
-              street_in_middle, street_in_middle, street_in_middle, street_in_middle],
+        maze=[street_in_middle, street_in_middle,
+              street_in_middle, street_in_middle,
+              [1] * 10, street_in_middle,
+              street_in_middle, street_in_middle,
+              street_in_middle, street_in_middle],
         start=(0, 4),
         end=(9, 4)
     ),
     'loop': Maze(
-        10, 10,
         maze=[loop_top, loop_row1, loop_row1, loop_row1, loop_row1, [1] * 10,
               loop_row2, loop_row2, loop_row2, [0] * 5 + [1] * 5],
         start=(0, 0),
@@ -120,9 +134,10 @@ testMazes = {
     )
 }
 
+
 if __name__ == '__main__':
-    print Maze.from_file('../data/easy-maze.txt')
+    # print Maze.from_file('../data/easy-maze.txt')
     # print Maze.from_file('../data/medium-maze.txt')
     # print Maze.from_file('../data/hard-maze.txt')
 
-    print testMazes['loop'].to_file()
+    print testMazes['empty']
