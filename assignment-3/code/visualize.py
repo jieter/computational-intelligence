@@ -1,3 +1,4 @@
+import os
 import matplotlib.pyplot as plt
 
 
@@ -14,6 +15,8 @@ class Visualizer(object):
         self.ax2.set_title('pheromone')
 
         self.update()
+        plt.ion()
+        plt.show()
 
     def update(self):
         extent = [0, self.maze.width, 0, self.maze.height]
@@ -22,13 +25,23 @@ class Visualizer(object):
                         extent=extent,
                         interpolation='nearest')
 
-        self.ax2.imshow(self.maze.pheromone,
-                        extent=extent,
-                        interpolation='nearest')
+        pher = self.ax2.imshow(
+            self.maze.pheromone,
+            extent=extent,
+            interpolation='nearest'
+        )
+        plt.draw()
 
+        # plt.colorbar(pher, ax=self.ax2)
         plt.axis('off')
+
+    def wait(self):
+        print 'Waiting for image to be closed...'
+        plt.ioff()
         plt.show()
 
+    def save(self, filename):
+        plt.savefig(os.path.join('output', filename))
 
 if __name__ == '__main__':
     from maze import Maze

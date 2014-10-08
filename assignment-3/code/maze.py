@@ -1,18 +1,19 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-DIRECTIONS = {
-    'east': 0,
-    'north': 1,
-    'west': 2,
-    'south': 3
-}
-
 
 class Maze(object):
+    EAST = 0
+    NORTH = 1
+    WEST = 2
+    SOUTH = 3
+
     START = 's'
     END = 'e'
     WALKABLE = (1, START, END)
+
+    start = None
+    end = None
 
     def __init__(self, size=None, maze=None, start=None, end=None, name=None):
         # if size not defined, use input size.
@@ -38,7 +39,12 @@ class Maze(object):
                 'Start & end must be defined in maze or explicitly'
             )
 
-        self.pheromone = [[0.0] * self.width] * self.height
+        self.pheromone = map(list, [[0.1] * self.width] * self.height)
+
+        if self.end is not None:
+            self.pheromone[self.end[1]][self.end[0]] = 10
+
+
 
     def add_row(self, row):
         assert len(self.maze) <= self.height, \
@@ -66,22 +72,37 @@ class Maze(object):
             self.get_at(point) in Maze.WALKABLE
         )
 
+    def tau(self, point):
+        return self.pheromone[point[1]][point[0]]
+
+    def increase_tau(self, point, amount):
+        self.pheromone[point[1]][point[0]] += float(amount)
+
+    def update_tau(self, delta_tau, evaporation):
+        for y in range(self.height):
+            for x in range(self.width):
+                self.pheromone[y][x] *= (1 - evaporation)
+                self.pheromone[y][x] += delta_tau[y][x]
+
     def peek(self, point):
         '''
-        returns a set of points reachable from `point`,
-        an empty list if `point` is invalid
+        returns a set of (point, direction, pheromone)-tuples reachable from
+        `point`, an empty list if `point` is not walkable.
         '''
         if not self.walkable(point):
             return []
 
         x, y = point
         options = [
-            (x - 1, y),
-            (x, y - 1),
-            (x + 1, y),
-            (x, y + 1)
+            ((x + 1, y), Maze.EAST),
+            ((x, y - 1), Maze.NORTH),
+            ((x - 1, y), Maze.WEST),
+            ((x, y + 1), Maze.SOUTH)
         ]
-        return [p for p in options if self.walkable(p)]
+        return [
+            (p[0], p[1], self.tau(p[0]))
+            for p in options if self.walkable(p[0])
+        ]
 
     def set_start(self, point):
         '''
@@ -91,7 +112,7 @@ class Maze(object):
         assert point[0] < self.width, 'Point exceeds width'
         assert point[1] < self.height, 'Point exceeds height'
 
-        self.start = point
+        self.start = tuple(point)
         self.set_at(point, Maze.START)
 
     def set_end(self, point):
@@ -102,16 +123,19 @@ class Maze(object):
         assert point[0] < self.width, 'Point exceeds width'
         assert point[1] < self.height, 'Point exceeds height'
 
-        self.end = map(int, point)
+        self.end = tuple(point)
         self.set_at(point, Maze.END)
 
     def find_start_end(self):
         '''
         Look in the maze for 's' and 'e' positions and save to self.start/end
         '''
+        if self.start and self.end:
+            return True
+
         for y in range(self.height):
             for x in range(self.width):
-                if self.get_at((x, y)) == Maze.START:
+                if self.get_at((x, y)) is Maze.START:
                     self.start = (x, y)
                 elif self.get_at((x, y)) == Maze.END:
                     self.end = (x, y)
@@ -140,7 +164,13 @@ class Maze(object):
         '''
         Return an NxM array of floats representing the maze
         '''
-        convert = lambda x: -1.0 if x == 0 else (float(x) if type(x) is int else 2)
+        wall = -1.0
+        empty = 2.0
+        start_end = 0
+        convert = lambda x: (
+            wall if x == 0 else
+            empty if type(x) is int else start_end
+        )
 
         convert_row = lambda y: list(convert(b) for b in y)
         return map(convert_row, self.maze)
@@ -186,6 +216,11 @@ def test_mazes(name):
     loop_row1 = [1] + [0] * 4 + [1] + [0] * 4
     loop_row2 = [0] * 5 + [1] + [0] * 3 + [1]
 
+    stringloader = lambda x: [
+        (int(c) if c in ('1', '0') else c)
+        for c in list(x)
+    ]
+
     # Some test mazes.
     mazes = {
         'empty': dict(
@@ -222,7 +257,41 @@ def test_mazes(name):
                   loop_row1, loop_row1, loop_row1, loop_row1, [1] * 10,
                   loop_row2, loop_row2, loop_row2,
                   [0] * 5 + [1] * 4 + ['e']]
+        ),
+        'tour_detour': dict(
+            name='Simple with obstacle',
+            maze=[
+                [1] * 10, [1] * 10,
+                [1] * 4 + [0] * 2 + [1] * 4,
+                [1] * 4 + [0] * 2 + [1] * 4,
+                ['s'] + [1] * 3 + [0] * 2 + [1] * 3 + ['e'],
+                [1] * 4 + [0] * 2 + [1] * 4,
+                [1] * 4 + [0] * 2 + [1] * 4,
+                [1] * 4 + [0] * 2 + [1] * 4,
+                [1] * 10, [1] * 10]
+        ),
+        'chicane': dict(
+            name='Chicane',
+            maze=map(stringloader, [
+                's10011111100e1',
+                '11001100110011',
+                '11001100110011',
+                '11001100110011',
+                '11111100111111'
+            ])
+        ),
+        'chicane2': dict(
+            name='Chicane 2',
+            maze=map(stringloader, [
+                's11101111111e1',
+                '11010100100011',
+                '10110100100001',
+                '10110100100011',
+                '10110111100010',
+                '11111111111111'
+            ])
         )
+
     }
 
     return Maze(**mazes[name])
@@ -233,5 +302,7 @@ if __name__ == '__main__':
     # print Maze.from_file('../data/medium-maze.txt')
     # print Maze.from_file('../data/hard-maze.txt')
 
-    maze = test_mazes('street')
+    maze = test_mazes('empty')
     print maze
+
+    print maze.peek((4, 4))
