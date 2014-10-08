@@ -8,17 +8,25 @@ class Visualizer(object):
 
         plt.close('all')
 
-        self.fig, self.ax = plt.subplots()
-        self.ax.set_title(maze.name)
-        plt.axis('off')
+        self.fig, (self.ax1, self.ax2) = plt.subplots(nrows=2)
+
+        self.ax1.set_title(maze.name)
+        self.ax2.set_title('pheromone')
 
         self.update()
 
     def update(self):
-        self.ax.imshow(self.maze.numerical(),
-                       extent=[0, self.maze.width, 0, self.maze.height],
-                       interpolation='nearest')
+        extent = [0, self.maze.width, 0, self.maze.height]
 
+        self.ax1.imshow(self.maze.numerical(),
+                        extent=extent,
+                        interpolation='nearest')
+
+        self.ax2.imshow(self.maze.pheromone,
+                        extent=extent,
+                        interpolation='nearest')
+
+        plt.axis('off')
         plt.show()
 
 
