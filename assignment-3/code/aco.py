@@ -1,4 +1,9 @@
+import copy
+import multiprocessing
+import os
 import random
+import sys
+import time
 
 from maze import Maze, test_mazes
 from visualize import Visualizer
@@ -27,7 +32,7 @@ class Ant(object):
         self.reset()
 
     def __str__(self):
-        return 'Ant(maze, (%d, %d))' % self.position
+        return 'Ant(%d, %d): t: %d' % (self.position + (len(self.trail), ))
 
     def __repr__(self):
         return self.__str__()
@@ -43,6 +48,11 @@ class Ant(object):
         '''
 
         options = self.maze.peek(self.position)
+        if len(options) == 1 and self.position not in (self.start, self.maze.end):
+            # position is only reachable from second to last position, so we can
+            # disable it in the maze
+            self.disable_positions.append(tuple(self.position))
+
         if len(self.position_list) > 2:
             options = [p for p in options if p[0] not in (self.position_list)]
             if len(options) is 0:
@@ -64,6 +74,7 @@ class Ant(object):
 
         self.position = tuple(self.start)
         self.position_list = [self.start]
+        self.disable_positions = []
         self.trail = []
 
     def trail_to_str(self):
@@ -74,91 +85,101 @@ class Ant(object):
         (start x, y);
         step;step;step;step;
         '''
-        raise '%d;\n%d,%d;\n%s' % (len(self.trail)) + self.start + (
-            ';'.join(self.trail)
+        return '%d;\n%d,%d;\n%s' % (
+            len(self.trail), self.start[0], self.start[1], ';'.join(map(str, self.trail)),
         )
 
-import multiprocessing
 
 def compute_ant(ant):
+    # TODO: magic number needs sane value!
     while not ant.done and len(ant.trail) < 10000:
         ant.step()
 
-    print ' Ant found the end, trail length:', len(ant.trail)
+    if ant.done:
+        print ' Ant found the end, trail length:', len(ant.trail)
     return ant
+
 
 class ACO(object):
     '''
     Perform ACO on the maze.
     '''
 
-    iterations = 10
+    iterations = 20
     ant_count = 10
 
-    evaporation = 0.1
-
+    evaporation = 0.3
 
     def __init__(self, maze):
         self.maze = maze
         self.ants = []
 
         # Inialize Q to a value close to
-        self.Q = maze.width * maze.height
+        self.Q = 1000
 
         self.visualizer = Visualizer(maze)
+        self.visualizer.save('0_initial.png')
 
     def run(self, visualize=True):
         maze = self.maze
+        pool = multiprocessing.Pool()
 
         # initialize ants
         for k in range(self.ant_count):
             self.ants.append(Ant(maze, maze.start))
 
+        global_best = None
         for i in range(self.iterations):
             print 'iteration', i
 
-            pool = multiprocessing.Pool()
+            # Make ants do their steps.
             self.ants = pool.map(compute_ant, self.ants)
-            # for k, ant in enumerate(self.ants):
-            #     while not ant.done:
-            #         ant.step()
-            #     print 'Ant found the end, trail length:', len(ant.trail)
 
+            # disable the dead ends found by the ant
+            for ant in self.ants:
+                for p in ant.disable_positions:
+                    self.maze.disable_at(p)
+
+            # empty list of delta's
             delta_tau = map(list, [[0.0] * maze.width] * maze.height)
 
             # select the best ant:
-            best = min([a for a in self.ants if a.done], key=lambda x: len(x.trail))
-            print 'Using the ant with trail length:', len(best.trail)
+            all_ants = self.ants + [global_best]
+            # print '\n'.join(map(lambda x: str(x), all_ants))
+            global_best = copy.deepcopy(min([a for a in all_ants if a is not None and a.done], key=lambda x: len(x.trail)))
+
+            print 'Using the ant with trail length:', len(global_best.trail)
 
             # update pheromone in the maze, for unique positions
-            best_position_list = list(set(best.position_list))
+            best_position_list = list(set(global_best.position_list))
             delta_tau_k = self.Q / len(best_position_list)
             for x, y in best_position_list:
                 delta_tau[y][x] += delta_tau_k
 
             maze.update_tau(delta_tau, evaporation=self.evaporation)
+
             # reset ants
             for ant in self.ants:
                 ant.reset()
 
             if visualize:
                 self.visualizer.update()
-                self.visualizer.save('after_%d.png' % i)
+                self.visualizer.save('%dth_iteration.png' % i)
 
+        pool.close()
 
+        self.maze.disable_at((0, 0))
         self.visualizer.update()
-        self.visualizer.wait()
+
+        with open('output/solution.txt', 'w') as out:
+            out.write(global_best.trail_to_str())
+        # self.visualizer.wait()
 
 if __name__ == '__main__':
-
-    import sys
-    import os
-    import time
-
     if len(sys.argv) > 1:
         maze = Maze.from_file(os.path.join('..', 'data', sys.argv[1]))
     else:
-        maze = test_mazes('chicane2')
+        maze = test_mazes('street_with_junctions')
         print maze
         # maze = Maze.from_file('../data/easy-maze.txt')
 
@@ -170,3 +191,5 @@ if __name__ == '__main__':
     aco.run()
 
     print 'Done in %0.2fs' % (time.time() - start_time)
+
+    os.system('convert $(for a in output/*.png; do printf -- "-delay 80 %s " $a; done; ) output/sequence.gif')

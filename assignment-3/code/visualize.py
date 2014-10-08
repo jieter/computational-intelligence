@@ -9,7 +9,7 @@ class Visualizer(object):
 
         plt.close('all')
 
-        self.fig, (self.ax1, self.ax2) = plt.subplots(nrows=2)
+        self.fig, (self.ax1, self.ax2) = plt.subplots(nrows=2, figsize=(6, 40))
 
         self.ax1.set_title(maze.name)
         self.ax2.set_title('pheromone')
@@ -25,7 +25,7 @@ class Visualizer(object):
                         extent=extent,
                         interpolation='nearest')
 
-        pher = self.ax2.imshow(
+        self.ax2.imshow(
             self.maze.pheromone,
             extent=extent,
             interpolation='nearest'

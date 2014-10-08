@@ -3,6 +3,7 @@
 
 
 class Maze(object):
+
     EAST = 0
     NORTH = 1
     WEST = 2
@@ -10,6 +11,7 @@ class Maze(object):
 
     START = 's'
     END = 'e'
+    WALL = 0
     WALKABLE = (1, START, END)
 
     start = None
@@ -44,8 +46,6 @@ class Maze(object):
         if self.end is not None:
             self.pheromone[self.end[1]][self.end[0]] = 10
 
-
-
     def add_row(self, row):
         assert len(self.maze) <= self.height, \
             'Height mismatch, len(self.maze) = %d, height = %d, %s' % (
@@ -64,6 +64,9 @@ class Maze(object):
         Set val `s` at coordinate `point` in the maze
         '''
         self.maze[point[1]][point[0]] = s
+
+    def disable_at(self, point):
+        self.set_at(point, Maze.WALL)
 
     def walkable(self, point):
         return (
@@ -142,7 +145,7 @@ class Maze(object):
 
         return self.start is not None and self.end is not None
 
-    def ascii_formatted_maze(self):
+    def ascii_formatted(self):
         '''
         Return a ascii representation of the maze, with start
         and end points.
@@ -175,10 +178,10 @@ class Maze(object):
         convert_row = lambda y: list(convert(b) for b in y)
         return map(convert_row, self.maze)
 
-    def __str__(self):
-        return 'Maze %s:\n%s' % (
-            self.name, self.ascii_formatted_maze()
-        )
+    # def __str__(self):
+    #     return 'Maze %s:\n%s' % (
+    #         self.name, self.ascii_formatted()
+    #     )
 
     def to_file(self):
         '''
@@ -232,6 +235,14 @@ def test_mazes(name):
         'street': dict(
             name='Single street',
             maze=[[0] * 10, ['s'] + [1] * 8 + ['e'], [0] * 10]
+        ),
+        'street_with_junctions': dict(
+            name='Single street with junctions',
+            maze=map(stringloader, [
+                '00100100100',
+                's111111111e',
+                '00010010100'
+            ])
         ),
         'corner': dict(
             name='Corner',
