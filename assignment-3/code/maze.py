@@ -44,17 +44,8 @@ class Maze(object):
         self.pheromone = map(list, [[0.1] * self.width] * self.height)
 
         if self.end is not None:
-            self.pheromone[self.end[1]][self.end[0]] = 10
+            self.pheromone[self.end[1]][self.end[0]] = 1
 
-    def add_row(self, row):
-        assert len(self.maze) <= self.height, \
-            'Height mismatch, len(self.maze) = %d, height = %d, %s' % (
-                len(self.maze), self.height, self.ascii_formatted_maze()
-            )
-        assert len(row) >= self.width, \
-            'Width mismatch: len(row) = %d != %d' % (len(row), self.width)
-
-        self.maze.append(map(int, row))
 
     def get_at(self, point):
         return self.maze[point[1]][point[0]]
@@ -178,10 +169,10 @@ class Maze(object):
         convert_row = lambda y: list(convert(b) for b in y)
         return map(convert_row, self.maze)
 
-    # def __str__(self):
-    #     return 'Maze %s:\n%s' % (
-    #         self.name, self.ascii_formatted()
-    #     )
+    def __str__(self):
+        return 'Maze %s:\n%s' % (
+            self.name, self.ascii_formatted()
+        )
 
     def to_file(self):
         '''
@@ -201,15 +192,15 @@ class Maze(object):
         Assumes a second file exists with two coordinates for start
         and end points.
         '''
-        with open(filename) as f:
-            maze = Maze(size=f.readline().split(' '), name=filename)
-            for row in f:
-                maze.add_row(row.split(' '))
-
-        '''Read start and end coordinates'''
-        with open(filename.replace('maze.txt', 'coordinates.txt')) as f:
-            maze.set_start(f.readline()[0:-2].split(','))
-            maze.set_end(f.readline()[0:-2].split(','))
+        with open(filename) as mazefile:
+            with open(filename.replace('maze.txt', 'coordinates.txt')) as coords:
+                maze = Maze(
+                    size=mazefile.readline().split(' '),
+                    name=filename,
+                    maze=[map(int, row.split(' ')) for row in mazefile],
+                    start=coords.readline()[0:-2].split(','),
+                    end=coords.readline()[0:-2].split(',')
+                )
 
         return maze
 

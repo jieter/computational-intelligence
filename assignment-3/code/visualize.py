@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 
 
 class Visualizer(object):
+    cbar = None
 
     def __init__(self, maze):
         self.maze = maze
@@ -18,18 +19,28 @@ class Visualizer(object):
         plt.ion()
         plt.show()
 
-    def update(self):
+
+
+    def update(self, label=None):
         extent = [0, self.maze.width, 0, self.maze.height]
 
         self.ax1.imshow(self.maze.numerical(),
                         extent=extent,
                         interpolation='nearest')
 
-        self.ax2.imshow(
+        if label is not None:
+            self.ax2.set_title(label)
+
+        pher = self.ax2.imshow(
             self.maze.pheromone,
             extent=extent,
             interpolation='nearest'
         )
+        if self.cbar is None:
+            self.cbar = self.fig.colorbar(pher)
+
+        self.cbar.on_mappable_changed(pher)
+
         plt.draw()
 
         # plt.colorbar(pher, ax=self.ax2)
