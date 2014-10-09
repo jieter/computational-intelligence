@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # coding: utf-8
 
+import numpy as np
+
 
 class Maze(object):
 
@@ -32,7 +34,6 @@ class Maze(object):
 
         if start is not None:
             self.set_start(start)
-
         if end is not None:
             self.set_end(end)
 
@@ -41,11 +42,10 @@ class Maze(object):
                 'Start & end must be defined in maze or explicitly'
             )
 
-        self.pheromone = map(list, [[0.1] * self.width] * self.height)
+        self.pheromone = np.full((self.height, self.width), 0.01)
 
         if self.end is not None:
-            self.pheromone[self.end[1]][self.end[0]] = 1
-
+            self.pheromone[self.end[1]][self.end[0]] = 0.02
 
     def get_at(self, point):
         return self.maze[point[1]][point[0]]
@@ -72,11 +72,11 @@ class Maze(object):
     def increase_tau(self, point, amount):
         self.pheromone[point[1]][point[0]] += float(amount)
 
-    def update_tau(self, delta_tau, evaporation):
-        for y in range(self.height):
-            for x in range(self.width):
-                self.pheromone[y][x] *= (1 - evaporation)
-                self.pheromone[y][x] += delta_tau[y][x]
+    def update_tau(self, delta_tau, evaporation=None):
+        if evaporation is not None:
+            self.pheromone *= (1 - evaporation)
+
+        self.pheromone += delta_tau
 
     def peek(self, point):
         '''
@@ -87,7 +87,7 @@ class Maze(object):
             return []
 
         x, y = point
-        options = [
+        moves = [
             ((x + 1, y), Maze.EAST),
             ((x, y - 1), Maze.NORTH),
             ((x - 1, y), Maze.WEST),
@@ -95,8 +95,18 @@ class Maze(object):
         ]
         return [
             (p[0], p[1], self.tau(p[0]))
-            for p in options if self.walkable(p[0])
+            for p in moves if self.walkable(p[0])
         ]
+
+    def peek_dir(self, point, direction):
+        '''
+        Peek in direction
+        '''
+        moves = self.peek(point)
+        if len(moves) is 0:
+            return None
+
+        return next([m for m in moves if m[3] == direction])
 
     def set_start(self, point):
         '''

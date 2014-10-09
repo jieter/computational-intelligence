@@ -49,8 +49,11 @@ class Ant(object):
             # Dead end mitigation:
             # position is only reachable from second to last position, so we can
             # disable it in the maze
-            if len(moves) == 1 and self.position not in (self.start, self.maze.end):
-                self.disable_positions.append(tuple(self.position))
+            if len(moves) == 1 and self.position not in (self.start):
+                self.disable_positions.append(self.position)
+
+                # When I turn this on, all kind of strange things happen
+                # self.maze.disable_at(tuple(self.position))
 
             # We have more than one option
             if len(self.position_list) > 1:
@@ -61,13 +64,8 @@ class Ant(object):
             selected = weighted_random_choice(moves, 2)
 
         newPosition, direction, tau = selected
-
         self.trail.append(direction)
         self.update_position(newPosition)
-
-        # if newPosition == self.maze.end:
-        #     # horay, found the end.
-        #     self.done = True
 
     def reset(self):
         self.done = False
@@ -100,4 +98,3 @@ class Ant(object):
 
     def __lt__(self, other):
         return len(self.trail) < len(other.trail)
-

@@ -1,6 +1,6 @@
-import copy
 import itertools
 import multiprocessing
+import numpy as np
 import os
 import sys
 import time
@@ -32,12 +32,14 @@ class ACO(object):
     '''
 
     iterations = 30
-    ant_count = 15
+    ant_count = 1
 
-    evaporation = 0.25
+    evaporation = 0.2
 
     # Initialize Q to high value
     Q = 1000
+    # update Q using the minimum path length  as value.
+    update_Q = False
 
     # Number of steps an ant may wander before it is terminated for that
     # iterations.
@@ -49,6 +51,17 @@ class ACO(object):
 
         self.visualizer = Visualizer(maze)
         self.visualizer.save('0_initial.png')
+
+    def delta_matrix(self, ant):
+        delta_tau = np.zeros((self.maze.height, self.maze.width))
+
+        unique_positions = list(set(ant.position_list))
+        delta_tau_k = self.Q / len(unique_positions)
+
+        for x, y in unique_positions:
+            delta_tau[y][x] += delta_tau_k
+
+        return delta_tau
 
     def run(self, visualize=True):
         maze = self.maze
@@ -66,8 +79,8 @@ class ACO(object):
             self.ants = pool.map(ant_loop_apply, itertools.izip(self.ants, [self.ant_max_steps] * self.ant_count))
 
             done_ants = [a for a in self.ants if a is not None and a.done]
-            # disable the dead ends found by the ant
 
+            # disable the dead ends found by the ant
             for ant in self.ants:
                 for p in ant.disable_positions:
                     self.maze.disable_at(p)
@@ -81,14 +94,13 @@ class ACO(object):
                 else:
                     global_best = min([iteration_best, global_best]).clone()
 
-            print 'Using the ant with trail length:', len(global_best.trail)
+            # empty list of delta's
+            delta_tau = map(list, [[0.0] * maze.width] * maze.height)
 
             # update pheromone in the maze, for unique positions
             best_position_list = list(set(global_best.position_list))
             delta_tau_k = self.Q / len(best_position_list)
 
-            # empty list of delta's
-            delta_tau = map(list, [[0.0] * maze.width] * maze.height)
             for x, y in best_position_list:
                 delta_tau[y][x] += delta_tau_k
 
@@ -98,11 +110,14 @@ class ACO(object):
             ants_done = [x for x in self.ants if x.done]
             if len(ants_done) > 3:
                 try:
-                    self.ant_max_steps = max(len(x.trail) for x in ants_done if len(x.trail) < self.ant_max_steps)
+                    self.ant_max_steps = min(
+                        self.ant_max_steps,
+                        max(len(x.trail) for x in ants_done if len(x.trail) < self.ant_max_steps)
+                    )
                 except:
-                    #
                     pass
-                self.Q = min(min(len(x.trail) for x in self.ants), self.Q)
+                if self.update_Q:
+                    self.Q = min(min(len(x.trail) for x in self.ants), self.Q)
 
             # reset ants
             for ant in self.ants:
@@ -113,6 +128,7 @@ class ACO(object):
                 self.visualizer.save('%dth_iteration.png' % i)
 
         pool.close()
+        pool.join()
 
         return global_best
 
@@ -120,7 +136,7 @@ if __name__ == '__main__':
     if len(sys.argv) > 1:
         maze = Maze.from_file(os.path.join('..', 'data', sys.argv[1]))
     else:
-        maze = test_mazes('street_with_junctions')
+        maze = test_mazes('tour_detour')
         print maze
         # maze = Maze.from_file('../data/easy-maze.txt')
 
@@ -132,11 +148,13 @@ if __name__ == '__main__':
     aco = ACO(maze)
     best = aco.run()
 
+    print
     print 'Done in %0.2fs' % (time.time() - start_time)
+    print 'Best ant: ', len(best.trail)
 
     with open('output/solution_%d.txt' % len(best.trail), 'w') as out:
         out.write(best.trail_to_str())
 
     os.system('convert $(for a in output/*.png; do printf -- "-delay 80 %s " $a; done; ) ' +
               'output/sequence_%d.gif' % len(best.trail))
-
+    os.system('rm output/*.png')

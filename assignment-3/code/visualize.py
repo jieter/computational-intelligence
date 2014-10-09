@@ -19,8 +19,6 @@ class Visualizer(object):
         plt.ion()
         plt.show()
 
-
-
     def update(self, label=None):
         extent = [0, self.maze.width, 0, self.maze.height]
 
@@ -37,13 +35,11 @@ class Visualizer(object):
             interpolation='nearest'
         )
         if self.cbar is None:
-            self.cbar = self.fig.colorbar(pher)
+            self.cbar = self.fig.colorbar(pher, shrink=.75)
 
         self.cbar.on_mappable_changed(pher)
 
         plt.draw()
-
-        # plt.colorbar(pher, ax=self.ax2)
         plt.axis('off')
 
     def wait(self):
