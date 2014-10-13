@@ -7,6 +7,7 @@ import pickle
 from maze import Maze
 from aco import ACO
 
+
 class TSPMaze(object):
     '''
     assumes
@@ -87,13 +88,17 @@ class TSPMaze(object):
 
     def load_cache(self):
         with open(self.cachefile) as f:
-           self.results = pickle.load(f)
+            self.results = pickle.load(f)
 
     def dump_cache(self):
         with open(self.cachefile, 'w') as f:
             pickle.dump(self.results, f)
 
     def result_matrix(self):
+        '''
+        Display the result matrix in ascii from
+        '''
+
         FORMAT = '%4d'
         print '  ',
         for A, locationA in self.products.items():
@@ -111,11 +116,6 @@ class TSPMaze(object):
                 else:
                     print FORMAT % self.results[A, B],
             print
-
-
-
-
-
 
 if __name__ == '__main__':
     print 'Loading TSPMaze...'
