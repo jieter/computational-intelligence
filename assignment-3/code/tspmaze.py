@@ -17,13 +17,16 @@ class TSPMaze(object):
      - tst-products.txt
     '''
 
-    EMPTY = -1
-    FAILED = -2
+    EMPTY = {}
+    FAILED = {
+        'failed': True
+    }
 
     cachefile = 'tsp-results.pickle'
 
     def __init__(self, filename='../data/hard-maze.txt'):
         self.maze = Maze.from_file(filename)
+        self.cachefile = filename + '.tsp-results.pickle'
 
         self.load_products()
 
@@ -32,7 +35,10 @@ class TSPMaze(object):
             print 'Loading from cachefile: %s' % self.cachefile
             self.load_cache()
         else:
-            self.results = np.full((self.num + 1, self.num + 1), TSPMaze.EMPTY)
+            size = self.num + 1
+            self.results = map(list, [[TSPMaze.EMPTY] * size] * size)
+
+            print self.results
 
         np.set_printoptions(suppress=True)
 
@@ -47,44 +53,79 @@ class TSPMaze(object):
                 [row[0:-2].split(':') for row in products]
             }
 
-    def calculate_paths(self):
+    def calculate_paths(self, refine=False):
         maze = self.maze
 
         total_paths = 0.5 * (self.num - 1) * self.num
         print 'Calculate paths between %d products (%d paths total) in maze %s.' % (
             self.num, total_paths, maze.name
         )
+        overall_start_time = time.time()
+        elapsed_list = []
+
+        for A in range(self.num + 1):
+            self.set_result(A, A, None)
+
+        self.dump_cache()
 
         for A, locationA in self.products.items():
             for B, locationB in self.products.items():
-                print 'Route %d -> %d' % (A, B),
-
                 if A is B:
-                    self.results[A, B] = 0
-                    print 'is zero'
                     continue
 
-                # no reason to do double work
-                if self.results[B, A] not in (TSPMaze.EMPTY, TSPMaze.FAILED):
+                print 'Route %d -> %d' % (A, B),
+                if self.results[B][A] not in (TSPMaze.EMPTY, TSPMaze.FAILED):
                     print 'already done'
                     continue
 
-                aco = ACO(maze, visualize=False)
                 maze.set_start(locationA)
                 maze.set_end(locationB)
+                aco = ACO(maze, visualize=False, iterations=10)
 
                 start_time = time.time()
-
                 ant = aco.run(quiet=True)
-                if ant is None:
-                    self.results[A, B] = TSPMaze.FAILED
-                    print 'not found, run again to try again.' % (A, B)
-                else:
-                    self.results[A, B] = len(ant.trail)
-                    self.results[B, A] = len(ant.trail)
-                    print 'done (length: %d) in %0.2fs' % (len(ant.trail), time.time() - start_time)
+                elapsed = time.time() - start_time
 
+                if ant is None:
+                    self.set_result(A, B, TSPMaze.FAILED, elapsed=elapsed)
+                    print 'not found in %0.2fs, run again to try again. ' % elapsed
+                else:
+                    self.set_result(A, B, ant)
+
+                    print 'done (length: %d) in %0.2fs' % (len(ant.trail), elapsed)
+                    elapsed_list.append(elapsed)
+
+                print 'running %0.2fs now, average time: %0.2fs' % (
+                    time.time() - overall_start_time,
+                    sum(elapsed_list) / len(elapsed_list)
+                )
                 self.dump_cache()
+
+    def set_result(self, A, B, ant=None, elapsed=None):
+        res = {
+            'length': 0,
+            'trail': []
+        }
+
+        if ant is TSPMaze.FAILED:
+            res = ant
+        elif ant is not None:
+            if self.results[A][B] not in (self.EMPTY, self.FAILED):
+                known_length = self.results[A][B]['length']
+                # compare solution with known, store if better
+                if known_length < len(ant.trail):
+                    print 'Solution with length %d known, not updating.' % known_length
+                    return
+                else:
+                    print 'Updating solution (%d < %d)' % (len(ant.trail), known_length)
+
+            res['length'] = len(ant.trail)
+            res['trail'] = list(ant.trail)
+            if elapsed is not None:
+                res['elapsed'] = elapsed
+
+        self.results[A][B] = self.results[B][A] = res
+
 
     def load_cache(self):
         with open(self.cachefile) as f:
@@ -93,6 +134,15 @@ class TSPMaze(object):
     def dump_cache(self):
         with open(self.cachefile, 'w') as f:
             pickle.dump(self.results, f)
+
+    def done(self):
+        for x in range(1, self.num + 1):
+            for y in range(1, self.num + 1):
+                if self.results[x][y] in (self.EMPTY, self.FAILED):
+                    print self.results[x][y]
+                    return False
+
+        return True
 
     def result_matrix(self):
         '''
@@ -108,13 +158,13 @@ class TSPMaze(object):
         for A, locationA in self.products.items():
             print '%2d' % A,
             for B, locationB in self.products.items():
-                val = self.results[A, B]
+                val = self.results[A][B]
                 if val == TSPMaze.FAILED:
-                    print ' fail',
+                    print 'fail',
                 elif val == TSPMaze.EMPTY:
                     print '   .',
                 else:
-                    print FORMAT % self.results[A, B],
+                    print FORMAT % self.results[A][B]['length'],
             print
 
 if __name__ == '__main__':
@@ -122,4 +172,11 @@ if __name__ == '__main__':
 
     tspmaze = TSPMaze()
 
-    tspmaze.calculate_paths()
+    tspmaze.result_matrix()
+    print
+
+    if tspmaze.done():
+        print 'All possible paths calculated, running over it again to refine values.'
+        tspmaze.calculate_paths(refine=True)
+    else:
+        tspmaze.calculate_paths()
