@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import itertools
 import multiprocessing
 import numpy as np
@@ -32,14 +34,14 @@ class ACO(object):
     '''
 
     iterations = 30
-    ant_count = 1
+    ant_count = 10
 
-    evaporation = 0.2
+    evaporation = 0.1
 
     # Initialize Q to high value
     Q = 1000
     # update Q using the minimum path length  as value.
-    update_Q = False
+    update_Q = True
 
     # Number of steps an ant may wander before it is terminated for that
     # iterations.
@@ -71,7 +73,7 @@ class ACO(object):
         for k in range(self.ant_count):
             self.ants.append(Ant(maze, maze.start))
 
-        global_best = None
+        global_best = iteration_best = None
         for i in range(self.iterations):
             print '\nIteration: %d, Q: %d, max_steps: %d' % (i, self.Q, self.ant_max_steps)
 
@@ -94,17 +96,15 @@ class ACO(object):
                 else:
                     global_best = min([iteration_best, global_best]).clone()
 
-            # empty list of delta's
-            delta_tau = map(list, [[0.0] * maze.width] * maze.height)
-
             # update pheromone in the maze, for unique positions
-            best_position_list = list(set(global_best.position_list))
-            delta_tau_k = self.Q / len(best_position_list)
+            deltas = np.zeros((self.maze.height, self.maze.width))
+            if global_best is not None:
+                deltas = self.delta_matrix(global_best)
 
-            for x, y in best_position_list:
-                delta_tau[y][x] += delta_tau_k
+            if iteration_best is not None and global_best is not iteration_best:
+                deltas += self.delta_matrix(iteration_best)
 
-            maze.update_tau(delta_tau, evaporation=self.evaporation)
+            maze.update_tau(delta_tau=deltas, evaporation=self.evaporation)
 
             # update ant_max_steps to the max value of this iteration
             ants_done = [x for x in self.ants if x.done]

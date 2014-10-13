@@ -72,10 +72,8 @@ class Maze(object):
     def increase_tau(self, point, amount):
         self.pheromone[point[1]][point[0]] += float(amount)
 
-    def update_tau(self, delta_tau, evaporation=None):
-        if evaporation is not None:
-            self.pheromone *= (1 - evaporation)
-
+    def update_tau(self, delta_tau, evaporation):
+        self.pheromone *= (1 - evaporation)
         self.pheromone += delta_tau
 
     def peek(self, point):
