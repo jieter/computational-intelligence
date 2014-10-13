@@ -19,8 +19,8 @@ def ant_loop(ant, threshold):
     while not ant.done and len(ant.trail) < threshold:
         ant.step()
 
-    if ant.done:
-        print ' Ant found the end, trail length:', len(ant.trail)
+    # if ant.done:
+        # print ' Ant found the end, trail length:', len(ant.trail)
     return ant
 
 
@@ -33,26 +33,28 @@ class ACO(object):
     Perform ACO on the maze.
     '''
 
-    iterations = 30
-    ant_count = 10
-
     evaporation = 0.1
 
     # Initialize Q to high value
     Q = 1000
     # update Q using the minimum path length  as value.
-    update_Q = True
+    update_Q = False
 
     # Number of steps an ant may wander before it is terminated for that
     # iterations.
     ant_max_steps = 10000
 
-    def __init__(self, maze):
+    def __init__(self, maze, visualize=True, iterations=20, ant_count=15):
         self.maze = maze
         self.ants = []
 
-        self.visualizer = Visualizer(maze)
-        self.visualizer.save('0_initial.png')
+        self.visualize = visualize
+        self.iterations = iterations
+        self.ant_count = ant_count
+
+        if visualize:
+            self.visualizer = Visualizer(maze)
+            self.visualizer.save('0_initial.png')
 
     def delta_matrix(self, ant):
         delta_tau = np.zeros((self.maze.height, self.maze.width))
@@ -65,7 +67,7 @@ class ACO(object):
 
         return delta_tau
 
-    def run(self, visualize=True):
+    def run(self, quiet=False):
         maze = self.maze
         pool = multiprocessing.Pool()
 
@@ -75,7 +77,8 @@ class ACO(object):
 
         global_best = iteration_best = None
         for i in range(self.iterations):
-            print '\nIteration: %d, Q: %d, max_steps: %d' % (i, self.Q, self.ant_max_steps)
+            if not quiet:
+                print '\nIteration: %d, Q: %d, max_steps: %d' % (i, self.Q, self.ant_max_steps)
 
             # Make ants do their steps.
             self.ants = pool.map(ant_loop_apply, itertools.izip(self.ants, [self.ant_max_steps] * self.ant_count))
@@ -123,7 +126,7 @@ class ACO(object):
             for ant in self.ants:
                 ant.reset()
 
-            if visualize:
+            if self.visualize:
                 self.visualizer.update('Pheromone level iteration %d' % i)
                 self.visualizer.save('%dth_iteration.png' % i)
 

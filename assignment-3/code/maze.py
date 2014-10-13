@@ -14,7 +14,8 @@ class Maze(object):
     START = 's'
     END = 'e'
     WALL = 0
-    WALKABLE = (1, START, END)
+    PATH = 1
+    WALKABLE = (PATH, START, END)
 
     start = None
     end = None
@@ -114,6 +115,10 @@ class Maze(object):
         assert point[0] < self.width, 'Point exceeds width'
         assert point[1] < self.height, 'Point exceeds height'
 
+        # clear old start in maze
+        if self.start is not None:
+            self.set_at(self.start, Maze.PATH)
+
         self.start = tuple(point)
         self.set_at(point, Maze.START)
 
@@ -124,6 +129,10 @@ class Maze(object):
         point = map(int, point)
         assert point[0] < self.width, 'Point exceeds width'
         assert point[1] < self.height, 'Point exceeds height'
+
+        # clear old end in maze
+        if self.end is not None:
+            self.set_at(self.end, Maze.PATH)
 
         self.end = tuple(point)
         self.set_at(point, Maze.END)
