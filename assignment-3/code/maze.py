@@ -48,6 +48,8 @@ class Maze(object):
         if self.end is not None:
             self.pheromone[self.end[1]][self.end[0]] = 0.02
 
+        self.products = []
+
     def get_at(self, point):
         return self.maze[point[1]][point[0]]
 

@@ -55,6 +55,9 @@ class Ant(object):
         self.position = position
         self.position_list.append(position)
 
+    def points_of_interest(self):
+        return [self.start] + self.maze.products
+
     def step(self):
         '''
         Choose from the list of possible moves with probability defined
@@ -71,7 +74,7 @@ class Ant(object):
             # Dead end mitigation:
             # position is only reachable from second to last position, so we can
             # disable it in the maze
-            if len(moves) == 1 and self.position not in (self.start):
+            if len(moves) == 1 and self.position not in self.points_of_interest():
                 self.disable_positions.append(self.position)
 
                 # When I turn this on, all kind of strange things happen
@@ -97,7 +100,7 @@ class Ant(object):
         self.disable_positions = []
         self.trail = []
 
-    def optimize_trail(self):
+    def optimize_trail(self, quiet=True):
         '''
         Try to make this track shorter by unrolling loops.
         '''
@@ -110,7 +113,8 @@ class Ant(object):
         # print 'Before optimizing, len(trail) = %d, valid = %s' % (old_len, self.is_valid())
         # print 'new len: %d, diff: %d' % (len(new), old_len - len(new))
 
-        # compare_trails(self.maze, self.position_list, new)
+        if not quiet:
+            compare_trails(self.maze, self.position_list, new)
         self.update_position_list(new)
 
         # print 'valid: ', self.is_valid()

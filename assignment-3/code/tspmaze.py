@@ -53,6 +53,7 @@ class TSPMaze(object):
                 for product, location in
                 [row[0:-2].split(':') for row in products]
             }
+            self.maze.products = self.products.values()
 
     def calculate_paths(self, refine=False):
         maze = self.maze
@@ -73,18 +74,19 @@ class TSPMaze(object):
             for B, locationB in self.products.items():
                 if A is B:
                     continue
+                if not refine and self.results[B][A] not in (TSPMaze.EMPTY, TSPMaze.FAILED):
+                    continue
 
                 print 'Route %d -> %d' % (A, B),
-                if self.results[B][A] not in (TSPMaze.EMPTY, TSPMaze.FAILED):
-                    print 'already done'
-                    continue
 
                 maze.set_start(locationA)
                 maze.set_end(locationB)
-                aco = ACO(maze, visualize=False, iterations=10)
 
                 start_time = time.time()
+
+                aco = ACO(maze, visualize=False, iterations=10)
                 ant = aco.run(quiet=True)
+
                 elapsed = time.time() - start_time
 
                 if ant is None:
@@ -134,6 +136,8 @@ class TSPMaze(object):
     def dump_cache(self):
         with open(self.cachefile, 'w') as f:
             pickle.dump(self.results, f)
+        with open(self.cachefile + '.txt', 'w') as f:
+            f.write(self.result_matrix())
 
     def done(self):
         for x in range(1, self.num + 1):
@@ -148,30 +152,33 @@ class TSPMaze(object):
         Display the result matrix in ascii from
         '''
 
-        FORMAT = '%4d'
-        print '  ',
+        FORMAT = '%4d '
+
+        ret = '   '
         for A, locationA in self.products.items():
-            print FORMAT % A,
-        print
+            ret += (FORMAT % A)
+        ret += '\n'
 
         for A, locationA in self.products.items():
-            print '%2d' % A,
+            ret += '%2d ' % A
             for B, locationB in self.products.items():
                 val = self.results[A][B]
                 if val == TSPMaze.FAILED:
-                    print 'fail',
+                    ret += 'fail '
                 elif val == TSPMaze.EMPTY:
-                    print '   .',
+                    ret += '   . '
                 else:
-                    print FORMAT % self.results[A][B]['length'],
-            print
+                    ret += (FORMAT % self.results[A][B]['length'])
+            ret += '\n'
+
+        return ret
 
 if __name__ == '__main__':
     print 'Loading TSPMaze...'
 
     tspmaze = TSPMaze()
 
-    tspmaze.result_matrix()
+    print tspmaze.result_matrix()
     print
 
     if tspmaze.done():
@@ -179,3 +186,7 @@ if __name__ == '__main__':
         tspmaze.calculate_paths(refine=True)
     else:
         tspmaze.calculate_paths()
+        tspmaze.result_matrix()
+
+        while not tspmaze.done():
+            tspmaze.calculate_paths()

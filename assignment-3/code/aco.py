@@ -6,6 +6,7 @@ import numpy as np
 import os
 import sys
 import time
+import traceback
 
 from ant import Ant
 from maze import Maze, test_mazes
@@ -17,11 +18,17 @@ def ant_loop(ant, threshold):
     '''
     Ant loop is exited when the ants takes too much time.
     '''
-    while not ant.done and len(ant.trail) < threshold:
-        ant.step()
+    try:
+        while not ant.done and len(ant.trail) < threshold:
+            ant.step()
+    except Exception, e:
+        import sys
+        print 'error in ant loop: '
+        traceback.print_exc(file=sys.stdout)
+        return None
 
-    if ant.done:
-        print ' Ant found the end, trail length:', len(ant.trail)
+    # if ant.done:
+    #     print ' Ant found the end, trail length:', len(ant.trail)
     return ant
 
 
@@ -60,6 +67,8 @@ class ACO(object):
             self.visualizer = Visualizer(maze)
             self.visualizer.save('0_initial.png')
 
+        self.pool = multiprocessing.Pool()
+
     def delta_matrix(self, ant):
         delta_tau = np.zeros((self.maze.height, self.maze.width))
 
@@ -73,7 +82,6 @@ class ACO(object):
 
     def run(self, quiet=False):
         maze = self.maze
-        pool = multiprocessing.Pool()
 
         # initialize ants
         for k in range(self.ant_count):
@@ -85,7 +93,9 @@ class ACO(object):
                 print '\nIteration: %d, Q: %d, max_steps: %d' % (i, self.Q, self.ant_max_steps)
 
             # Make ants do their steps.
-            self.ants = pool.map(ant_loop_apply, itertools.izip(self.ants, [self.ant_max_steps] * self.ant_count))
+            self.ants = self.pool.map_async(
+                ant_loop_apply, itertools.izip(self.ants, [self.ant_max_steps] * self.ant_count)
+            ).get(9999999)
 
             if not quiet:
                 print 'Done stepping for this iteration...'
@@ -96,8 +106,9 @@ class ACO(object):
                 # optimize the trails for these ants
                 opts = []
                 for ant in done_ants:
-                    opts.append(ant.optimize_trail())
-                print 'Optimisation reduced trail langth with an average of', mean(opts)
+                    opts.append(ant.optimize_trail(quiet=quiet))
+                if not quiet:
+                    print 'Optimisation reduced trail langth with an average of', mean(opts)
 
             # disable the dead ends found by the ant
             for ant in self.ants:
@@ -145,8 +156,8 @@ class ACO(object):
                 self.visualizer.update('Pheromone level iteration %d' % i)
                 self.visualizer.save('%dth_iteration.png' % i)
 
-        pool.close()
-        pool.join()
+        self.pool.close()
+        self.pool.join()
 
         return global_best
 
@@ -164,7 +175,13 @@ if __name__ == '__main__':
     start_time = time.time()
 
     aco = ACO(maze)
-    best = aco.run()
+    try:
+        best = aco.run()
+    except KeyboardInerrupt:
+        aco.pool.close()
+        aco.pool.join()
+        print 'Interrupted'
+        sys.exit()
 
     print
     print 'Done in %0.2fs' % (time.time() - start_time)
