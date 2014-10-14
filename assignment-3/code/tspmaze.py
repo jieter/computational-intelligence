@@ -107,6 +107,14 @@ class TSPMaze(object):
                 self.dump_cache()
 
     def set_result(self, A, B, ant=None, elapsed=None):
+        known_length = None
+        if self.results[A][B] not in (self.EMPTY, self.FAILED):
+            known_length = self.results[A][B]['length']
+
+            if ant is None:
+                return
+
+
         res = {
             'length': 0,
             'trail': []
@@ -115,8 +123,7 @@ class TSPMaze(object):
         if ant is TSPMaze.FAILED:
             res = ant
         elif ant is not None:
-            if self.results[A][B] not in (self.EMPTY, self.FAILED):
-                known_length = self.results[A][B]['length']
+            if known_length is not None:
                 # compare solution with known, store if better
                 if known_length < len(ant.trail):
                     print 'Solution with length %d known, not updating.' % known_length
