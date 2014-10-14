@@ -21,10 +21,9 @@ def ant_loop(ant, threshold):
     try:
         while not ant.done and len(ant.trail) < threshold:
             ant.step()
-    except Exception, e:
-        import sys
+    except:
         print 'error in ant loop: '
-        traceback.print_exc(file=sys.stdout)
+        traceback.print_exc()
         return None
 
     # if ant.done:
@@ -177,7 +176,7 @@ if __name__ == '__main__':
     aco = ACO(maze)
     try:
         best = aco.run()
-    except KeyboardInerrupt:
+    except KeyboardInterrupt:
         aco.pool.close()
         aco.pool.join()
         print 'Interrupted'
