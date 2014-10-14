@@ -9,6 +9,7 @@ import time
 
 from ant import Ant
 from maze import Maze, test_mazes
+from util import mean
 from visualize import Visualizer
 
 
@@ -19,8 +20,8 @@ def ant_loop(ant, threshold):
     while not ant.done and len(ant.trail) < threshold:
         ant.step()
 
-    # if ant.done:
-        # print ' Ant found the end, trail length:', len(ant.trail)
+    if ant.done:
+        print ' Ant found the end, trail length:', len(ant.trail)
     return ant
 
 
@@ -43,6 +44,9 @@ class ACO(object):
     # Number of steps an ant may wander before it is terminated for that
     # iterations.
     ant_max_steps = 10000
+
+    # Wether or not to optimize the trails of the ants after they found the end.
+    optimize_ants = True
 
     def __init__(self, maze, visualize=True, iterations=20, ant_count=15):
         self.maze = maze
@@ -83,7 +87,17 @@ class ACO(object):
             # Make ants do their steps.
             self.ants = pool.map(ant_loop_apply, itertools.izip(self.ants, [self.ant_max_steps] * self.ant_count))
 
+            if not quiet:
+                print 'Done stepping for this iteration...'
+
             done_ants = [a for a in self.ants if a is not None and a.done]
+
+            if self.optimize_ants:
+                # optimize the trails for these ants
+                opts = []
+                for ant in done_ants:
+                    opts.append(ant.optimize_trail())
+                print 'Optimisation reduced trail langth with an average of', mean(opts)
 
             # disable the dead ends found by the ant
             for ant in self.ants:
@@ -107,15 +121,16 @@ class ACO(object):
             if iteration_best is not None and global_best is not iteration_best:
                 deltas += self.delta_matrix(iteration_best)
 
-            maze.update_tau(delta_tau=deltas, evaporation=self.evaporation)
+            # only update if iteration returned something.
+            if iteration_best is not None:
+                maze.update_tau(delta_tau=deltas, evaporation=self.evaporation)
 
             # update ant_max_steps to the max value of this iteration
-            ants_done = [x for x in self.ants if x.done]
-            if len(ants_done) > 3:
+            if len(done_ants) > 3:
                 try:
                     self.ant_max_steps = min(
                         self.ant_max_steps,
-                        max(len(x.trail) for x in ants_done if len(x.trail) < self.ant_max_steps)
+                        max(len(x.trail) for x in done_ants if len(x.trail) < self.ant_max_steps)
                     )
                 except:
                     pass

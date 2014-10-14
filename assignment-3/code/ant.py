@@ -1,6 +1,28 @@
 import random
 
 
+def compare_trails(maze, a, b):
+    width = maze.width
+    height = maze.height
+
+    row = [' '] * width + ['|'] + [' '] * width + ['|'] + [' '] * width
+
+    m = map(list, [row] * height)
+
+    for x, y in a:
+        m[y][x] = '.'
+        m[y][x + 2 + 2 * width] = '.'
+
+    for x, y in b:
+        m[y][x + width + 1] = 'o'
+        m[y][x + 2 + 2 * width] = 'o'
+
+    print ' a' + (' ' * (width - 2)) + '| b' + (' ' * (width - 2)) + '| beide'
+    print
+    for r in m:
+        print ''.join(r)
+
+
 def weighted_random_choice(choices, key):
     '''
     choose randomly from `choices` with probability in `key`
@@ -74,6 +96,103 @@ class Ant(object):
         self.position_list = [self.start]
         self.disable_positions = []
         self.trail = []
+
+    def optimize_trail(self):
+        '''
+        Try to make this track shorter by unrolling loops.
+        '''
+        old_len = len(self.trail)
+        new = self.optimize_backwards(self.position_list)
+
+        if old_len < len(new):
+            return
+
+        # print 'Before optimizing, len(trail) = %d, valid = %s' % (old_len, self.is_valid())
+        # print 'new len: %d, diff: %d' % (len(new), old_len - len(new))
+
+        # compare_trails(self.maze, self.position_list, new)
+        self.update_position_list(new)
+
+        # print 'valid: ', self.is_valid()
+
+        return old_len - len(new)
+
+    def optimize_backwards(self, old_list):
+        maze = self.maze
+        new_list = []
+
+        i = len(old_list) - 1
+        while i >= 0:
+            p = old_list[i]
+
+            if maze.end == p:
+                new_list.append(p)
+                i -= 1
+                continue
+
+            if maze.start == p:
+                new_list.append(p)
+                break
+
+            remainder = old_list[:-i]
+
+            # look if we can bridge to the remainder.
+            if p in remainder:
+                p_index = remainder.index(p)
+
+                new_list.append(p)
+
+                i = p_index - 1
+                continue
+
+            # look if we can take a shortcut to a position in the remainder
+            options = maze.peek(p)
+            if self.start in options:
+                new_list.append(self.start)
+                break
+            # insert check for each option in options to remainder
+
+            # if we come here, no optimisation for this point...
+            i -= 1
+            new_list.append(p)
+
+        new_list.reverse()
+        return new_list
+
+    def update_position_list(self, new_list):
+        '''
+        Update position_list and trail with positon list in new_list
+        '''
+        new_trail = []
+
+        for i in range(1, len(new_list)):
+            a = new_list[i - 1]
+            b = new_list[i]
+            new_trail.append(self.maze.move_direction(a, b))
+
+        assert len(new_trail) + 1 == len(new_list)
+
+        self.position_list = new_list
+        self.trail = new_trail
+
+        assert self.is_valid()
+
+    def is_valid(self):
+        '''
+        Check if trail is valid for this maze.
+        '''
+        position = self.start
+        maze = self.maze
+
+        for move in self.trail:
+            n = maze.peek_dir(position, move)
+
+            if n is None:
+                return False
+            else:
+                position = n[0]
+
+        return position == maze.end
 
     def trail_to_str(self):
         '''

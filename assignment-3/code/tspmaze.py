@@ -4,8 +4,9 @@ import time
 
 import pickle
 
-from maze import Maze
 from aco import ACO
+from maze import Maze
+from util import mean
 
 
 class TSPMaze(object):
@@ -97,7 +98,7 @@ class TSPMaze(object):
 
                 print 'running %0.2fs now, average time: %0.2fs' % (
                     time.time() - overall_start_time,
-                    sum(elapsed_list) / len(elapsed_list)
+                    mean(elapsed_list)
                 )
                 self.dump_cache()
 
@@ -126,7 +127,6 @@ class TSPMaze(object):
 
         self.results[A][B] = self.results[B][A] = res
 
-
     def load_cache(self):
         with open(self.cachefile) as f:
             self.results = pickle.load(f)
@@ -139,7 +139,6 @@ class TSPMaze(object):
         for x in range(1, self.num + 1):
             for y in range(1, self.num + 1):
                 if self.results[x][y] in (self.EMPTY, self.FAILED):
-                    print self.results[x][y]
                     return False
 
         return True

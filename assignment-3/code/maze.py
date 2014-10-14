@@ -102,10 +102,39 @@ class Maze(object):
         Peek in direction
         '''
         moves = self.peek(point)
-        if len(moves) is 0:
+        if len(moves) == 0:
             return None
 
-        return next([m for m in moves if m[3] == direction])
+        move_direction = [m for m in moves if m[1] == direction]
+
+        if len(move_direction) == 1:
+            return move_direction[0]
+        else:
+            return None
+
+    def move_direction(self, a, b):
+        '''
+        give the direction of the move between a and b,
+        return None if move is not possible.
+        '''
+        if self.walkable(a) and self.walkable(b):
+            xdiff = b[0] - a[0]
+            ydiff = b[1] - a[1]
+
+            if xdiff != 0 and ydiff != 0:
+                # diagonal move, illegal
+                return None
+
+            if xdiff == 1:
+                return Maze.EAST
+            elif xdiff == -1:
+                return Maze.WEST
+            elif ydiff == 1:
+                return Maze.SOUTH
+            elif ydiff == -1:
+                return Maze.NORTH
+
+        return None
 
     def set_start(self, point):
         '''
@@ -324,4 +353,7 @@ if __name__ == '__main__':
     maze = test_mazes('empty')
     print maze
 
-    print maze.peek((4, 4))
+    options = maze.peek((4, 4))
+
+    for position, direction, pher in options:
+        print position, direction, maze.move_direction((4, 4), position)
