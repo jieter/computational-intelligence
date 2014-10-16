@@ -2,4 +2,4 @@
 def mean(l):
     if len(l) == 0:
         return None
-    return sum(l) / float(len(l))
+    return round(sum(l) / float(len(l)), 1)

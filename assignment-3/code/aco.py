@@ -40,29 +40,37 @@ class ACO(object):
     Perform ACO on the maze.
     '''
 
+    iterations = 15
+
     evaporation = 0.1
 
     # Initialize Q to high value
-    Q = 1000
+    Q = 10000
+
     # update Q using the minimum path length  as value.
     update_Q = False
+
+    ant_count = 10
 
     # Number of steps an ant may wander before it is terminated for that
     # iterations.
     ant_max_steps = 10000
+    update_max_steps = False
 
     # Wether or not to optimize the trails of the ants after they found the end.
     optimize_ants = True
 
-    def __init__(self, maze, visualize=True, iterations=20, ant_count=15):
+    visualize = True
+    quiet = False
+
+    def __init__(self, maze, **settings):
         self.maze = maze
         self.ants = []
 
-        self.visualize = visualize
-        self.iterations = iterations
-        self.ant_count = ant_count
+        for name, value in settings.items():
+            setattr(self, name, value)
 
-        if visualize:
+        if self.visualize:
             self.visualizer = Visualizer(maze)
             self.visualizer.save('0_initial.png')
 
@@ -79,8 +87,14 @@ class ACO(object):
 
         return delta_tau
 
-    def run(self, quiet=False):
+    def run(self):
+        if not self.quiet:
+            print 'starting with ACO with %d ants for %d iterations' % (
+                self.ant_count, self.iterations
+            )
         maze = self.maze
+
+        self.iteration_best_trail = [None] * self.iterations
 
         # initialize ants
         for k in range(self.ant_count):
@@ -88,7 +102,7 @@ class ACO(object):
 
         global_best = iteration_best = None
         for i in range(self.iterations):
-            if not quiet:
+            if not self.quiet:
                 print '\nIteration: %d, Q: %d, max_steps: %d' % (i, self.Q, self.ant_max_steps)
 
             # Make ants do their steps.
@@ -96,17 +110,22 @@ class ACO(object):
                 ant_loop_apply, itertools.izip(self.ants, [self.ant_max_steps] * self.ant_count)
             ).get(9999999)
 
-            if not quiet:
-                print 'Done stepping for this iteration...'
 
             done_ants = [a for a in self.ants if a is not None and a.done]
+
+            if not self.quiet:
+                print '%d out of %d ants finished within %d steps.' % (
+                    len(done_ants),
+                    self.ant_count,
+                    self.ant_max_steps
+                )
 
             if self.optimize_ants:
                 # optimize the trails for these ants
                 opts = []
                 for ant in done_ants:
-                    opts.append(ant.optimize_trail(quiet=quiet))
-                if not quiet:
+                    opts.append(ant.optimize_trail(quiet=self.quiet))
+                if not self.quiet:
                     print 'Optimisation reduced trail langth with an average of', mean(opts)
 
             # disable the dead ends found by the ant
@@ -134,19 +153,26 @@ class ACO(object):
             # only update if iteration returned something.
             if iteration_best is not None:
                 maze.update_tau(delta_tau=deltas, evaporation=self.evaporation)
+                self.iteration_best_trail[i] = len(iteration_best.trail)
 
             # update ant_max_steps to the max value of this iteration
             if len(done_ants) > 3:
-                try:
-                    self.ant_max_steps = min(
-                        self.ant_max_steps,
-                        max(len(x.trail) for x in done_ants if len(x.trail) < self.ant_max_steps)
-                    )
-                except:
-                    pass
+                if self.update_max_steps:
+                    try:
+                        self.ant_max_steps = min(
+                            self.ant_max_steps,
+                            max(len(x.trail) for x in done_ants if len(x.trail) < self.ant_max_steps)
+                        )
+                    except:
+                        pass
                 if self.update_Q:
                     self.Q = min(min(len(x.trail) for x in self.ants), self.Q)
 
+            if not self.quiet:
+                print 'Best ant: %d, iteration best: %d' % (
+                    len(global_best.trail),
+                    len(iteration_best.trail)
+                )
             # reset ants
             for ant in self.ants:
                 ant.reset()
@@ -158,22 +184,47 @@ class ACO(object):
         self.pool.close()
         self.pool.join()
 
+        self.global_best = global_best
         return global_best
 
+    def get_first_iteration_with_best_trail(self):
+        trail_length = len(self.global_best.trail)
+
+        for i, val in enumerate(self.iteration_best_trail):
+            if val == trail_length:
+                return i
+
 if __name__ == '__main__':
+    settings = {
+        '../data/easy-maze.txt': dict(
+            ant_count=10,
+            evaportion=0.15,
+            Q=50
+        ),
+        '../data/medium-maze.txt': dict(
+            ant_count=15
+        )
+
+    }
     if len(sys.argv) > 1:
-        maze = Maze.from_file(os.path.join('..', 'data', sys.argv[1]))
+        filename = os.path.join('..', 'data', sys.argv[1])
+        maze = Maze.from_file(filename)
+
+        settings = settings[filename]
     else:
         maze = test_mazes('tour_detour')
-        print maze
-        # maze = Maze.from_file('../data/easy-maze.txt')
+        settings = dict(
+            ant_count=10,
+            Q=20
+        )
 
+    print maze
     print 'Maze "%s" (%d, %d)' % (maze.name, maze.width, maze.height)
     print 'start:', maze.start, 'end:', maze.end
 
     start_time = time.time()
 
-    aco = ACO(maze)
+    aco = ACO(maze, **settings)
     try:
         best = aco.run()
     except KeyboardInterrupt:

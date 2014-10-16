@@ -5,7 +5,7 @@ def compare_trails(maze, a, b):
     width = maze.width
     height = maze.height
 
-    row = [' '] * width + ['|'] + [' '] * width + ['|'] + [' '] * width
+    row = [' '] * width + ['|'] + [' '] * width + ['|'] + [' '] * width + ['|']
 
     m = map(list, [row] * height)
 
@@ -100,24 +100,27 @@ class Ant(object):
         self.disable_positions = []
         self.trail = []
 
-    def optimize_trail(self, quiet=True):
+    def optimize_trail(self, quiet=False):
         '''
         Try to make this track shorter by unrolling loops.
+        Returns the difference in length.
         '''
         old_len = len(self.trail)
         new = self.optimize_backwards(self.position_list)
 
+
+
         if old_len < len(new):
-            return
+            return 0
 
         # print 'Before optimizing, len(trail) = %d, valid = %s' % (old_len, self.is_valid())
         # print 'new len: %d, diff: %d' % (len(new), old_len - len(new))
 
-        if not quiet:
-            compare_trails(self.maze, self.position_list, new)
+        # if not quiet:
+            # compare_trails(self.maze, self.position_list, new)
         self.update_position_list(new)
-
         # print 'valid: ', self.is_valid()
+
 
         return old_len - len(new)
 
