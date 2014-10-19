@@ -1,6 +1,10 @@
 from random import randrange
 import numpy as np
 import matplotlib.pyplot as plt
+import pickle
+
+with open('../assignment 3/data/hard-maze.txt.tsp-results.pickle') as f:
+    results = pickle.load(f)
 
 noOfItems = 18      #Het aantal items in de maze
 noOfChroms = 200
@@ -40,7 +44,7 @@ def calcFitness(matr):
     for row in range(0,(len(matr))):
         totaal = 0
         for col in range(0,len(matr[N])-1):
-            totaal += Afstand[matr[row,col],matr[row,(col + 1)]]
+            totaal += results[int(matr[row,col])][int(matr[row,(col + 1)])]['length']
         fitness.append(totaal)
     gesorteerd = sorted(fitness)
     average.append(sum(gesorteerd)/float(len(gesorteerd)))
@@ -50,7 +54,7 @@ def calcFitness(matr):
     for i in range(0,10):
         plaats = (fitness.index(gesorteerd[i]))
         toppers[i,:] = matr[plaats,:]
-    return toppers
+    return toppers, fitness
     
 
 """Nu is het tijd voor de selectie van de fitste chromosomen en evolutie"""
@@ -58,7 +62,7 @@ def calcNewFamily(matr):
     kinderen = np.zeros((noOfChroms,noOfItems))
     kindnr = 0
     toppers = np.zeros((10,len(matr[N,:])))
-    toppers = calcFitness(matr)
+    toppers, fitness = calcFitness(matr)
     for i in range(0,len(toppers)):
         for j in range(0,len(toppers)):
             place1 = randrange(0,(len(toppers[i,:])-1))
@@ -96,16 +100,42 @@ def calcNewFamily(matr):
                 kinderen[(kindnr + 1),0:place1] = rest[0:place1]
                 kinderen[(kindnr + 1),place2:len(kinderen[(kindnr + 1)])] = rest[place1:len(rest)]
                 kindnr += 2
-    return(kinderen)
+    return kinderen, fitness
 
-new = calcNewFamily(chromosomen)
+new, fitness = calcNewFamily(chromosomen)
 xas = [0]
-for a in range(1,101):
-    new = calcNewFamily(new)
+for a in range(1,100):
     xas.append(a)
-print(average)
-print(minima)
+    new, fitness = calcNewFamily(new)
+
 
 plt.plot(xas,average,'b',xas,minima,'r')
 plt.show()
-             
+
+with open('chromosomen.pickle','wb') as handle:
+    pickle.dump(new,handle)
+
+winnaar = new[fitness.index(min(fitness)),:]
+
+steps = []
+for gen in range(0,len(winnaar)-1):
+    steps.append(results[int(winnaar[gen])][int(winnaar[(gen + 1)])]['trail'])
+
+txtfile = open('steps.txt','w')
+txtfile.write("take product #")
+txtfile.write(str(int(winnaar[0])))
+txtfile.write(";\n")
+for row in range(0,len(steps)):
+    for col in range(0,len(steps[row])):
+        txtfile.write(str(int(steps[row][col])))
+        txtfile.write(";\n")
+    txtfile.write("take product #")
+    txtfile.write(str(int(winnaar[(row + 1)])))
+    txtfile.write(";\n")
+
+text_file = open('chromosomen.txt','w')
+for row in range(0,len(new)):
+    for col in range(0,len(new[row,:])):
+        text_file.write(str(int(new[row,col])))
+        text_file.write(", ")
+    text_file.write("\n")
