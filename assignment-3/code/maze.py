@@ -451,6 +451,8 @@ def test_mazes(name):
         )
 
     }
+    if name not in mazes:
+        return None
 
     return Maze(**mazes[name])
 

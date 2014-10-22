@@ -97,7 +97,9 @@ class ACO(object):
         if self.do_reconnaissance < 1:
             return maze
 
-        print 'Performing reconnaissance for %d steps' % self.do_reconnaissance
+        print 'Performing reconnaissance width %d ants for %d steps' % (
+            self.ant_count, self.do_reconnaissance
+        )
         ants = []
         for i in range(self.ant_count):
             ants.append(Ant(maze, maze.start))
@@ -178,12 +180,12 @@ class ACO(object):
                 iteration_best = min(done_ants)
 
                 # if global_best becomes invalid, forget it.
-                if global_best is not None:
-                    global_best.maze = self.maze
-                    if not global_best.is_valid():
-                        global_best = None
-                        if not self.quiet:
-                            print 'Forgot global best!'
+                # if global_best is not None:
+                #     global_best.maze = self.maze
+                #     if not global_best.is_valid():
+                #         global_best = None
+                #         if not self.quiet:
+                #             print 'Forgot global best!'
 
                 if global_best is None:
                     global_best = iteration_best.clone()
@@ -230,7 +232,7 @@ class ACO(object):
 
             # reset ants
             for ant in self.ants:
-                ant.reset()
+                ant.reset(maze)
 
             if self.visualize:
                 self.visualizer.update('Pheromone level iteration %d' % i)
@@ -256,38 +258,50 @@ class ACO(object):
 
 if __name__ == '__main__':
     settings = {
-        '../data/easy-maze.txt': dict(
+        'easy': dict(
             ant_count=10,
-            evaportion=0.15,
+            evaporation=0.15,
             Q=50
         ),
-        '../data/medium-maze.txt': dict(
+        'medium': dict(
             ant_count=20,
             Q=300
         ),
-        '../data/hard-maze.txt': dict(
+        'hard': dict(
             Q=4000,
-        )
-    }
-    if len(sys.argv) > 1:
-        filename = os.path.join('..', 'data', sys.argv[1])
-        maze = Maze.from_file(filename)
-
-        settings = settings[filename]
-    else:
-        maze = test_mazes('test2')
-        settings = dict(
+            iterations=30,
+            ant_count=30,
+            evaporation=0.5,
+            do_reconnaissance=8000,
+        ),
+        'insane': dict(
+            Q=10000,
+            do_reconnaissance=8000,
+            evaporation=0.6,
+            iterations=30,
+            ant_count=20,
+        ),
+        'test2': dict(
             Q=100,
             iterations=20,
         )
+    }
 
-    # settins during maze optimisation programming
-    settings.update(dict(
-        ant_count=20,
-        multiprocessing=True,
-        ant_max_steps=10000,
-        optimize_ants=True
-    ))
+    if len(sys.argv) > 1:
+        maze_name = sys.argv[1]
+    else:
+        maze_name = 'test2'
+
+    maze = test_mazes(maze_name)
+    if maze is None:
+        maze_name = '%s-maze.txt' % maze_name
+        maze = Maze.from_file(os.path.join('..', 'data', maze_name))
+
+    if maze_name in settings:
+        settings = settings[maze_name]
+    else:
+        settings = dict()
+
     print maze
     print 'Maze "%s" (%d, %d)' % (maze.name, maze.width, maze.height)
     print 'start:', maze.start, 'end:', maze.end
@@ -295,6 +309,9 @@ if __name__ == '__main__':
     start_time = time.time()
 
     aco = ACO(maze, **settings)
+    aco.reconnaissance()
+    aco.visualizer.update('After reconnaissance')
+
     try:
         best = aco.run()
     except KeyboardInterrupt:
@@ -307,7 +324,6 @@ if __name__ == '__main__':
     print 'Done in %0.2fs' % (time.time() - start_time)
     print 'Best ant: ', len(best.trail)
 
-
     print maze
 
     with open('output/solution_%d.txt' % len(best.trail), 'w') as out:
@@ -315,4 +331,4 @@ if __name__ == '__main__':
 
     os.system('convert $(for a in output/*.png; do printf -- "-delay 80 %s " $a; done; ) ' +
               'output/sequence_%d.gif' % len(best.trail))
-    # os.system('rm output/*.png')
+    os.system('rm output/*.png')

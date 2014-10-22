@@ -1,6 +1,7 @@
 import random
 from maze import Maze
 
+
 def compare_trails(maze, a, b):
     width = maze.width
     height = maze.height
@@ -61,7 +62,7 @@ class Ant(object):
         self.position_list.append(position)
         self.trail.append(direction)
 
-    def reset(self):
+    def reset(self, maze=None):
         self.done = False
         self.failed = False
 
@@ -70,6 +71,9 @@ class Ant(object):
         self.position_list = [self.start]
         self.disable_positions = []
         self.trail = []
+
+        if maze is not None:
+            self.maze = maze
 
     def moves_are_corner(self, moves):
         moves = [m[1] for m in moves]
@@ -119,7 +123,6 @@ class Ant(object):
             self.done = True
             return True
 
-
         # look for cells we can disable:
         disable = None
         if len(self.position_list) > 2:
@@ -147,21 +150,6 @@ class Ant(object):
                     if len(moves) == 3 and len(prev_moves_1) == 4:
                         disable = previous_2
 
-                    # if len(prev_moves_1) == 3 and len(moves) == 4:
-
-                    #     for d in Maze.DIRECTIONS:
-                    #         if d not in prev_moves_1 and d not in prev_moves_2:
-                    #             disable = previous_2
-
-                                # print self.position, previous_1, previous_2, 'disable:', disable
-
-                #     elif len(moves) == 3 and len(prev_moves_1) == 2:
-                #         disable = previous_2
-                        # elif len(moves) == 3 and len(prev_moves_1) == 3:
-                        # disable = previous_2
-                    # print '  open space disable', disable, 'current pos', self.position
-
-
             if disable is not None:
                 if disable not in self.maze.points_of_interest():
                     self.disable_positions.append(disable)
@@ -179,12 +167,11 @@ class Ant(object):
 
         selected = weighted_random_choice(moves, weight_key=2)
 
-        if selected == False:
+        if not selected:
             return
 
         newPosition, direction, _ = selected
         self.update_position(newPosition, direction)
-
 
     def optimize_trail(self, quiet=False):
         '''

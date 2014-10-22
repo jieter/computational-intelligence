@@ -29,7 +29,7 @@ class TSPMaze(object):
 
     def __init__(self, filename='../data/hard-maze.txt'):
         self.maze = Maze.from_file(filename)
-        self.cachefile = filename + '.tsp-results2.pickle'
+        self.cachefile = filename + '.tsp-results.pickle'
 
         self.maze.load_products()
         self.num = self.maze.product_count
@@ -40,31 +40,36 @@ class TSPMaze(object):
             print 'Loading from cachefile: %s' % self.cachefile
             self.load_cache()
         else:
-            size = self.num + 1
+            size = len(self.locations())
             self.results = map(list, [[TSPMaze.EMPTY] * size] * size)
 
         np.set_printoptions(suppress=True)
 
     def calculate_paths(self, refine=False):
         maze = self.maze
+        count = self.count()
 
-        total_paths = 0.5 * (self.num - 1) * self.num
+        total_paths = 0.5 * (count - 1) * count
         print 'Calculate paths between %d products (%d paths total) in maze %s.' % (
-            self.num, total_paths, maze.name
+            count, total_paths, maze.name
         )
         overall_start_time = time.time()
         elapsed_list = []
 
-        for A in range(self.num + 1):
+        for A in range(len(self.locations())):
             self.set_result(A, A, None)
 
         self.dump_cache()
 
-        aco = ACO(maze, visualize=False, quiet=True, ant_count=40)
+        aco = ACO(maze, visualize=False, quiet=True, ant_count=40, do_reconnaissance=8000)
         maze = aco.reconnaissance()
 
-        for A, locationA in self.products.items():
-            for B, locationB in self.products.items():
+        i = 1
+        failes = 0
+        for A, locationA in self.locations():
+            for B, locationB in self.locations():
+                i += 1
+
                 if A is B:
                     continue
                 if not refine and self.results[B][A] not in (TSPMaze.EMPTY, TSPMaze.FAILED):
@@ -73,34 +78,44 @@ class TSPMaze(object):
                 print 'Route %d -> %d' % (A, B),
 
                 maze.reset_start_end(locationA, locationB)
-                # print maze
+
                 start_time = time.time()
 
-                aco = ACO(maze, visualize=False, iterations=8, ant_count=10, ant_max_steps=5000, quiet=True, evaporation=0.2)
+                tries = 1
+                aco = ACO(maze, visualize=False, iterations=5,
+                          ant_count=10, ant_max_steps=5000, quiet=True,
+                          evaporation=0.1)
                 ant = aco.run()
 
-                if ant is None:
-                    print '1st try failed, try again...'
-                    aco = ACO(maze, visualize=False, iterations=16, ant_count=10, ant_max_steps=5000, quiet=True, evaporation=0.2)
+                while ant is None and tries < 2:
+                    print 'try %d failed,' % tries,
+                    aco = ACO(maze, visualize=False, iterations=15, evaporation=0.1,
+                              ant_count=10, ant_max_steps=10000, quiet=True)
                     ant = aco.run()
+
+                    tries += 1
 
                 elapsed = time.time() - start_time
 
                 if ant is None:
                     self.set_result(A, B, TSPMaze.FAILED, elapsed=elapsed)
-                    print 'not found in %0.2fs, run again to try again. ' % elapsed
+                    print '\n!! not found in %0.2fs, run again to try again. ' % elapsed
+                    failes += 1
                 else:
                     self.set_result(A, B, ant)
 
                     print 'done (length: %d) in %0.2fs' % (len(ant.trail), elapsed)
                     elapsed_list.append(elapsed)
 
-                print 'running %0.2fs now, average time: %0.2fs (TSP matrix done in: %0.0fs)' % (
-                    time.time() - overall_start_time,
-                    mean(elapsed_list),
-                    total_paths * mean(elapsed_list)
-                )
+                if i % 15 == 1:
+                    print '  running %0.2fs now, average time: %0.2fs (TSP matrix done in: %0.0fs)' % (
+                        time.time() - overall_start_time,
+                        mean(elapsed_list),
+                        total_paths * mean(elapsed_list)
+                    )
                 self.dump_cache()
+
+        return failes
 
     def set_result(self, A, B, ant=None, elapsed=None):
         known_length = None
@@ -144,12 +159,22 @@ class TSPMaze(object):
             f.write(self.result_matrix())
 
     def done(self):
-        for x in range(1, self.num + 1):
-            for y in range(1, self.num + 1):
+        for x in range(self.count()):
+            for y in range(self.count()):
                 if self.results[x][y] in (self.EMPTY, self.FAILED):
                     return False
 
         return True
+
+    def count(self):
+        return len(self.locations())
+
+    def locations(self):
+        return (
+            [(0, self.maze.start)] +
+            self.products.items() +
+            [(len(self.products) + 1, self.maze.end)]
+        )
 
     def result_matrix(self):
         '''
@@ -159,13 +184,13 @@ class TSPMaze(object):
         FORMAT = '%4d '
 
         ret = '   '
-        for A, locationA in self.products.items():
+        for A, locationA in self.locations():
             ret += (FORMAT % A)
         ret += '\n'
 
-        for A, locationA in self.products.items():
+        for A, locationA in self.locations():
             ret += '%2d ' % A
-            for B, locationB in self.products.items():
+            for B, locationB in self.locations():
                 val = self.results[A][B]
                 if val == TSPMaze.FAILED:
                     ret += 'fail '
@@ -178,19 +203,25 @@ class TSPMaze(object):
         return ret
 
 if __name__ == '__main__':
+    start_time = time.time()
     print 'Loading TSPMaze...'
-
     tspmaze = TSPMaze()
+    print '0 = start, %d = end' % (tspmaze.count() - 1)
 
     print tspmaze.result_matrix()
     print
 
     if tspmaze.done():
         print 'All possible paths calculated, running over it again to refine values.'
-        tspmaze.calculate_paths(refine=True)
+        failed = tspmaze.calculate_paths(refine=True)
+
     else:
-        tspmaze.calculate_paths()
+        failed = tspmaze.calculate_paths()
         tspmaze.result_matrix()
+
+        print 'Failed paths: %d' % failed
 
         while not tspmaze.done():
             tspmaze.calculate_paths()
+
+    print 'Total running time: %0.0fs' % (time.time() - start_time)
