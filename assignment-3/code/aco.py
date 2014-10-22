@@ -19,7 +19,7 @@ def ant_loop(ant, threshold):
     Ant loop is exited when the ants takes too much time.
     '''
     try:
-        while not ant.done and len(ant.trail) < threshold:
+        while not ant.done and not ant.failed and len(ant.trail) < threshold:
             ant.step()
     except:
         print 'error in ant loop: '
@@ -63,6 +63,10 @@ class ACO(object):
     visualize = True
     quiet = False
 
+    multiprocessing = True
+
+    do_reconnaissance = 4000
+
     def __init__(self, maze, **settings):
         self.maze = maze
         self.ants = []
@@ -74,7 +78,8 @@ class ACO(object):
             self.visualizer = Visualizer(maze)
             self.visualizer.save('0_initial.png')
 
-        self.pool = multiprocessing.Pool()
+        if self.multiprocessing:
+            self.pool = multiprocessing.Pool()
 
     def delta_matrix(self, ant):
         delta_tau = np.zeros((self.maze.height, self.maze.width))
@@ -87,6 +92,27 @@ class ACO(object):
 
         return delta_tau
 
+    def reconnaissance(self):
+        maze = self.maze
+        if self.do_reconnaissance < 1:
+            return maze
+
+        print 'Performing reconnaissance for %d steps' % self.do_reconnaissance
+        ants = []
+        for i in range(self.ant_count):
+            ants.append(Ant(maze, maze.start))
+
+        results = self.pool.map_async(
+            ant_loop_apply, itertools.izip(ants, [self.do_reconnaissance] * self.ant_count)
+        ).get(999999)
+
+        for ant in results:
+            for disable in ant.disable_positions:
+                maze.disable_at(disable)
+
+        print 'reconnaissance done'
+        return maze
+
     def run(self):
         if not self.quiet:
             print 'starting with ACO with %d ants for %d iterations' % (
@@ -94,7 +120,7 @@ class ACO(object):
             )
         maze = self.maze
 
-        self.iteration_best_trail = [None] * self.iterations
+        self.iteration_best_trail = []
 
         # initialize ants
         for k in range(self.ant_count):
@@ -105,11 +131,24 @@ class ACO(object):
             if not self.quiet:
                 print '\nIteration: %d, Q: %d, max_steps: %d' % (i, self.Q, self.ant_max_steps)
 
-            # Make ants do their steps.
-            self.ants = self.pool.map_async(
-                ant_loop_apply, itertools.izip(self.ants, [self.ant_max_steps] * self.ant_count)
-            ).get(9999999)
+            if self.multiprocessing:
+                # Make ants do their steps.
+                self.ants = self.pool.map_async(
+                    ant_loop_apply, itertools.izip(self.ants, [self.ant_max_steps] * self.ant_count)
+                ).get(9999999)
+            else:
+                print 'Stepping...'
+                for ant in self.ants:
+                    i = 0
+                    while not ant.done and len(ant.trail) < self.ant_max_steps:
+                        ant.step()
 
+                        i += 1
+                        if i % 1000 == 1:
+                            self.visualizer.update('stepping: %d' % i)
+
+                    if not ant.done:
+                        print 'moving to next ant, this one stuck in', ant.position
 
             done_ants = [a for a in self.ants if a is not None and a.done]
 
@@ -130,12 +169,21 @@ class ACO(object):
 
             # disable the dead ends found by the ant
             for ant in self.ants:
-                for p in ant.disable_positions:
-                    self.maze.disable_at(p)
+                if ant is not None:
+                    for p in ant.disable_positions:
+                        self.maze.disable_at(p)
 
             # select the best ant:
             if len(done_ants) > 0:
                 iteration_best = min(done_ants)
+
+                # if global_best becomes invalid, forget it.
+                if global_best is not None:
+                    global_best.maze = self.maze
+                    if not global_best.is_valid():
+                        global_best = None
+                        if not self.quiet:
+                            print 'Forgot global best!'
 
                 if global_best is None:
                     global_best = iteration_best.clone()
@@ -152,8 +200,11 @@ class ACO(object):
 
             # only update if iteration returned something.
             if iteration_best is not None:
-                maze.update_tau(delta_tau=deltas, evaporation=self.evaporation)
-                self.iteration_best_trail[i] = len(iteration_best.trail)
+                self.iteration_best_trail.append(len(iteration_best.trail))
+            else:
+                self.iteration_best_trail.append(None)
+
+            maze.update_tau(delta_tau=deltas, evaporation=self.evaporation)
 
             # update ant_max_steps to the max value of this iteration
             if len(done_ants) > 3:
@@ -169,10 +220,14 @@ class ACO(object):
                     self.Q = min(min(len(x.trail) for x in self.ants), self.Q)
 
             if not self.quiet:
-                print 'Best ant: %d, iteration best: %d' % (
-                    len(global_best.trail),
-                    len(iteration_best.trail)
-                )
+                if iteration_best is not None and global_best is not None:
+                    print 'Best ant: %d, iteration best: %d' % (
+                        len(global_best.trail),
+                        len(iteration_best.trail)
+                    )
+                else:
+                    print 'None of the ants finished stepping'
+
             # reset ants
             for ant in self.ants:
                 ant.reset()
@@ -181,11 +236,16 @@ class ACO(object):
                 self.visualizer.update('Pheromone level iteration %d' % i)
                 self.visualizer.save('%dth_iteration.png' % i)
 
-        self.pool.close()
-        self.pool.join()
+        if self.multiprocessing:
+            self.interrupt()
 
         self.global_best = global_best
         return global_best
+
+    def interrupt(self):
+        if self.multiprocessing:
+            self.pool.close()
+            self.pool.join()
 
     def get_first_iteration_with_best_trail(self):
         trail_length = len(self.global_best.trail)
@@ -202,9 +262,12 @@ if __name__ == '__main__':
             Q=50
         ),
         '../data/medium-maze.txt': dict(
-            ant_count=15
+            ant_count=20,
+            Q=300
+        ),
+        '../data/hard-maze.txt': dict(
+            Q=4000,
         )
-
     }
     if len(sys.argv) > 1:
         filename = os.path.join('..', 'data', sys.argv[1])
@@ -212,12 +275,19 @@ if __name__ == '__main__':
 
         settings = settings[filename]
     else:
-        maze = test_mazes('tour_detour')
+        maze = test_mazes('test2')
         settings = dict(
-            ant_count=10,
-            Q=20
+            Q=100,
+            iterations=20,
         )
 
+    # settins during maze optimisation programming
+    settings.update(dict(
+        ant_count=20,
+        multiprocessing=True,
+        ant_max_steps=10000,
+        optimize_ants=True
+    ))
     print maze
     print 'Maze "%s" (%d, %d)' % (maze.name, maze.width, maze.height)
     print 'start:', maze.start, 'end:', maze.end
@@ -228,18 +298,21 @@ if __name__ == '__main__':
     try:
         best = aco.run()
     except KeyboardInterrupt:
-        aco.pool.close()
-        aco.pool.join()
+        aco.interrupt()
         print 'Interrupted'
         sys.exit()
 
     print
+    print 'Best ant is_valid:', best.is_valid()
     print 'Done in %0.2fs' % (time.time() - start_time)
     print 'Best ant: ', len(best.trail)
+
+
+    print maze
 
     with open('output/solution_%d.txt' % len(best.trail), 'w') as out:
         out.write(best.trail_to_str())
 
     os.system('convert $(for a in output/*.png; do printf -- "-delay 80 %s " $a; done; ) ' +
               'output/sequence_%d.gif' % len(best.trail))
-    os.system('rm output/*.png')
+    # os.system('rm output/*.png')

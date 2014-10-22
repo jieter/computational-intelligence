@@ -3,7 +3,7 @@
 import pickle
 import time
 from numpy import arange
-from pylab import *
+from pylab import figure, boxplot, title, xticks, ylim, xlabel, ylabel
 import matplotlib.pyplot as plt
 
 from aco import ACO
@@ -19,14 +19,14 @@ default_settings = dict(
 )
 
 parameters = dict(
-    evaporation=arange(0.05, 0.6, 0.05),
+    evaporation=arange(0.05, 0.7, 0.05),
     Q=[10, 20, 30, 32, 34, 36, 37, 38, 39, 40, 41, 42, 44, 46, 48, 50, 60, 70, 80, 90, 100, 200],
     ant_count=[1, 2, 4, 8, 10, 12, 16, 20, 30, 50, 100, 200, 400],
     optimize_ants=[True, False],
 )
 
+
 def make_boxplot(basename, data, plot_title, xvalues, labelx, labely):
-    print data
     figure()
     boxplot(data)
     title(plot_title)
@@ -43,6 +43,7 @@ def make_boxplot(basename, data, plot_title, xvalues, labelx, labely):
     plt.savefig(basename + '.png')
     print 'Saved figure %s ...' % basename
 
+
 def parameter_compare(maze_name, vary_parameter, compute=True):
     filename = '../data/%s-maze.txt' % maze_name
     outputfile = 'compare-graphs/%s/param-compare-%%s.pickle' % maze_name
@@ -51,7 +52,8 @@ def parameter_compare(maze_name, vary_parameter, compute=True):
 
     if compute:
         start_time = time.time()
-        print 'Running ACO %d times for each %d different values of %s: ' % (
+        print 'Running ACO on %s maze %d times for each %d different values of %s: ' % (
+            maze_name,
             iterations,
             len(parameters[vary_parameter]),
             vary_parameter
@@ -112,8 +114,23 @@ def parameter_compare(maze_name, vary_parameter, compute=True):
 
 if __name__ == '__main__':
     start_time = time.time()
-    for maze_name in ('easy', 'medium', 'hard'):
-        for param in ('optimize_ants', 'ant_count', 'Q', 'evaporation'):
-            parameter_compare(maze_name, param, compute=True)
+
+    maze_name = 'easy'
+    for param in ('optimize_ants', 'ant_count', 'Q', 'evaporation'):
+        parameter_compare(maze_name, param, compute=True)
+
+    maze_name = 'medium'
+    default_settings['Q'] = 250
+    parameters['Q'] = [50, 100, 200, 225, 250, 275, 300, 400, 500, 100]
+    for param in ('Q', 'optimize_ants', 'ant_count',  'evaporation'):
+        parameter_compare(maze_name, param, compute=True)
+
+    maze_name = 'hard'
+    default_settings['Q'] = 4000
+    default_settings['ant_max_steps'] = 50000
+
+    parameters['Q'] = [50, 1000, 2000, 3000, 3500, 3750, 4000, 4250, 4500, 5000, 6000, 7000, 8000, 10000]
+    for param in ('Q', 'optimize_ants', 'ant_count',  'evaporation'):
+        parameter_compare(maze_name, param, compute=True)
 
     print 'all done in %ds' % (int(time.time(), start_time))

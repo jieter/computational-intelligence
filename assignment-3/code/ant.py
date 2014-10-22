@@ -1,5 +1,5 @@
 import random
-
+from maze import Maze
 
 def compare_trails(maze, a, b):
     width = maze.width
@@ -23,18 +23,23 @@ def compare_trails(maze, a, b):
         print ''.join(r)
 
 
-def weighted_random_choice(choices, key):
+def weighted_random_choice(choices, weight_key):
     '''
     choose randomly from `choices` with probability in `key`
     '''
-    total = sum(p[key] for p in choices)
+    if len(choices) == 1:
+        return choices[0]
+
+    total = sum(p[weight_key] for p in choices)
 
     r = random.uniform(0, total)
     upto = 0
     for choice in choices:
-        if upto + choice[key] > r:
+        if upto + choice[weight_key] > r:
             return choice
-        upto += choice[key]
+        upto += choice[weight_key]
+
+    return False
 
 
 class Ant(object):
@@ -51,12 +56,46 @@ class Ant(object):
     def __repr__(self):
         return self.__str__()
 
-    def update_position(self, position):
+    def update_position(self, position, direction):
         self.position = position
         self.position_list.append(position)
+        self.trail.append(direction)
 
-    def points_of_interest(self):
-        return [self.start] + self.maze.products
+    def reset(self):
+        self.done = False
+        self.failed = False
+
+        self.previous_position = None
+        self.position = tuple(self.start)
+        self.position_list = [self.start]
+        self.disable_positions = []
+        self.trail = []
+
+    def moves_are_corner(self, moves):
+        moves = [m[1] for m in moves]
+        if len(moves) != 2:
+            return False
+
+        northsouth = Maze.NORTH in moves or Maze.SOUTH in moves
+        if Maze.EAST in moves and northsouth:
+            return True
+        if Maze.WEST in moves and northsouth:
+            return True
+
+        return False
+
+    def corners_face_same_dir(self, a, b):
+        if not (self.moves_are_corner(a) and self.moves_are_corner(b)):
+            return False
+
+        a_moves = [m[1] for m in a]
+        b_moves = [m[1] for m in b]
+
+        for d in Maze.DIRECTIONS:
+            if d in a_moves and d in b_moves:
+                return True
+
+        return False
 
     def step(self):
         '''
@@ -64,41 +103,88 @@ class Ant(object):
         by the pheromone amounts
         '''
 
-        # possible moves in maze.
+        # possible moves from postion in maze.
         moves = self.maze.peek(self.position)
 
+        if len(moves) == 0:
+            self.failed = True
+
+        # We found the end.
         if self.maze.end in [x[0] for x in moves]:
             [selected] = (x for x in moves if x[0] == self.maze.end)
+
+            newPosition, direction, _ = selected
+            self.update_position(newPosition, direction)
+
             self.done = True
-        else:
-            # Dead end mitigation:
+            return True
+
+
+        # look for cells we can disable:
+        disable = None
+        if len(self.position_list) > 2:
+            previous_1 = self.position_list[-2]
+            previous_2 = self.position_list[-3]
+
+            prev_moves_1 = self.maze.peek(previous_1)
+            prev_moves_2 = self.maze.peek(previous_2)
+
+            # disable dead ends.
             # position is only reachable from second to last position, so we can
             # disable it in the maze
-            if len(moves) == 1 and self.position not in self.points_of_interest():
-                self.disable_positions.append(self.position)
+            if len(prev_moves_1) == 1:
+                disable = previous_1
 
-                # When I turn this on, all kind of strange things happen
-                # self.maze.disable_at(tuple(self.position))
+            # disable open spaces
+            if self.moves_are_corner(prev_moves_2) and previous_2 is not self.position:
+                if self.maze.is_diagonal(previous_2, self.position):
+                    if len(moves) == 4:
+                        disable = previous_2
 
-            # We have more than one option
-            if len(self.position_list) > 1:
-                moves = [p for p in moves if p[0] not in (self.position_list)]
-                if len(moves) is 0:
-                    moves = self.maze.peek(self.position)
+                    if self.corners_face_same_dir(prev_moves_1, prev_moves_2):
+                        disable = previous_2
 
-            selected = weighted_random_choice(moves, 2)
+                    if len(moves) == 3 and len(prev_moves_1) == 4:
+                        disable = previous_2
 
-        newPosition, direction, tau = selected
-        self.trail.append(direction)
-        self.update_position(newPosition)
+                    # if len(prev_moves_1) == 3 and len(moves) == 4:
 
-    def reset(self):
-        self.done = False
+                    #     for d in Maze.DIRECTIONS:
+                    #         if d not in prev_moves_1 and d not in prev_moves_2:
+                    #             disable = previous_2
 
-        self.position = tuple(self.start)
-        self.position_list = [self.start]
-        self.disable_positions = []
-        self.trail = []
+                                # print self.position, previous_1, previous_2, 'disable:', disable
+
+                #     elif len(moves) == 3 and len(prev_moves_1) == 2:
+                #         disable = previous_2
+                        # elif len(moves) == 3 and len(prev_moves_1) == 3:
+                        # disable = previous_2
+                    # print '  open space disable', disable, 'current pos', self.position
+
+
+            if disable is not None:
+                if disable not in self.maze.points_of_interest():
+                    self.disable_positions.append(disable)
+                    self.maze.disable_at(disable)
+                # else:
+                    # print 'not disabling', disable, 'it is in POI list:', self.maze.points_of_interest()
+
+                moves = self.maze.peek(self.position)
+
+        # We have more than one option
+        if len(self.position_list) > 1:
+            moves = [p for p in moves if p[0] not in (self.position_list)]
+            if len(moves) is 0:
+                moves = self.maze.peek(self.position)
+
+        selected = weighted_random_choice(moves, weight_key=2)
+
+        if selected == False:
+            return
+
+        newPosition, direction, _ = selected
+        self.update_position(newPosition, direction)
+
 
     def optimize_trail(self, quiet=False):
         '''
@@ -106,25 +192,26 @@ class Ant(object):
         Returns the difference in length.
         '''
         old_len = len(self.trail)
-        new = self.optimize_backwards(self.position_list)
-
-
+        new = self._optimize_backwards(self.position_list)
 
         if old_len < len(new):
             return 0
+
+        # if not self.maze.is_valid_position_list(new):
+        #     print 'new position_list is not valid (maybe due to disabled cells?)'
+        #     return 0
 
         # print 'Before optimizing, len(trail) = %d, valid = %s' % (old_len, self.is_valid())
         # print 'new len: %d, diff: %d' % (len(new), old_len - len(new))
 
         # if not quiet:
-            # compare_trails(self.maze, self.position_list, new)
+        # compare_trails(self.maze, self.position_list, new)
         self.update_position_list(new)
         # print 'valid: ', self.is_valid()
 
-
         return old_len - len(new)
 
-    def optimize_backwards(self, old_list):
+    def _optimize_backwards(self, old_list):
         maze = self.maze
         new_list = []
 
@@ -182,24 +269,13 @@ class Ant(object):
         self.position_list = new_list
         self.trail = new_trail
 
-        assert self.is_valid()
+        # assert self.is_valid()
 
     def is_valid(self):
         '''
         Check if trail is valid for this maze.
         '''
-        position = self.start
-        maze = self.maze
-
-        for move in self.trail:
-            n = maze.peek_dir(position, move)
-
-            if n is None:
-                return False
-            else:
-                position = n[0]
-
-        return position == maze.end
+        return self.maze.is_valid_trail(self.start, self.trail)
 
     def trail_to_str(self):
         '''

@@ -11,25 +11,29 @@ class Maze(object):
     WEST = 2
     SOUTH = 3
 
+    DIRECTIONS = [EAST, NORTH, WEST, SOUTH]
+
+    PATH = 1
     START = 's'
     END = 'e'
-    WALL = 0
-    PATH = 1
     WALKABLE = (PATH, START, END)
+
+    WALL = 0
+    DISABLED = -1
 
     start = None
     end = None
 
-    def __init__(self, size=None, maze=None, start=None, end=None, name=None):
+    def __init__(self, maze, size=None, start=None, end=None, name=None):
         # if size not defined, use input size.
         if size is None:
-            assert maze is not None, 'supply size or maze'
             self.height = len(maze)
             self.width = len(maze[0])
         else:
             self.width, self.height = map(int, size)
 
-        self.maze = [] if maze is None else list(map(list, maze))
+        self.original_maze = maze
+        self.set_maze(maze)
 
         self.name = name or 'Maze [%dx%d]' % (self.width, self.height)
 
@@ -42,13 +46,15 @@ class Maze(object):
             raise ValueError(
                 'Start & end must be defined in maze or explicitly'
             )
+        self.reset_pheromone()
 
+        self.products = []
+
+    def reset_pheromone(self):
         self.pheromone = np.full((self.height, self.width), 0.01)
 
         if self.end is not None:
             self.pheromone[self.end[1]][self.end[0]] = 0.02
-
-        self.products = []
 
     def get_at(self, point):
         return self.maze[point[1]][point[0]]
@@ -60,7 +66,14 @@ class Maze(object):
         self.maze[point[1]][point[0]] = s
 
     def disable_at(self, point):
-        self.set_at(point, Maze.WALL)
+        if point in self.points_of_interest():
+            return
+
+        self.set_at(point, Maze.DISABLED)
+        self.pheromone[point[1]][point[0]] = 0
+
+    def points_of_interest(self):
+        return [self.start, self.end] + self.products
 
     def walkable(self, point):
         return (
@@ -112,6 +125,12 @@ class Maze(object):
             return move_direction[0]
         else:
             return None
+
+    def is_diagonal(self, a, b):
+        xdiff = abs(b[0] - a[0])
+        ydiff = abs(b[1] - a[1])
+
+        return xdiff == 1 and ydiff == 1
 
     def move_direction(self, a, b):
         '''
@@ -167,6 +186,51 @@ class Maze(object):
         self.end = tuple(point)
         self.set_at(point, Maze.END)
 
+    def set_maze(self, maze):
+        self.maze = list(map(list, maze))
+
+    def reset_start_end(self, start, end):
+        # self.set_maze(self.original_maze)
+        self.reset_pheromone()
+
+        self.set_start(start)
+        self.set_end(end)
+
+    def is_valid_trail(self, start, trail):
+        '''
+        Check if trail is valid for this maze.
+        '''
+        position = start
+
+        for move in trail:
+            n = self.peek_dir(position, move)
+
+            if n is None:
+                return False
+            else:
+                position = n[0]
+
+        return position == self.end
+
+    def is_valid_position_list(self, positions):
+        if positions[0] != self.start or positions[-1] != self.end:
+            return False
+
+        prev = self.start
+        for p in positions[1:]:
+            xdiff = abs(p[0] - prev[0])
+            ydiff = abs(p[1] - prev[1])
+
+            if (xdiff == 1 and ydiff == 1) or (xdiff == 0 and ydiff == 0):
+                return False
+
+            if not self.walkable(p):
+                return False
+
+            prev = p
+
+        return True
+
     def find_start_end(self):
         '''
         Look in the maze for 's' and 'e' positions and save to self.start/end
@@ -189,7 +253,9 @@ class Maze(object):
         and end points.
         '''
         wall = lambda x: ' ' if x == 1 else \
-                         '▓' if x == 0 else x
+                         '▓' if x == Maze.WALL else \
+                         'x' if x == Maze.DISABLED \
+                         else x
         edge = '▒'
 
         # format inner walls
@@ -205,11 +271,13 @@ class Maze(object):
         '''
         Return an NxM array of floats representing the maze
         '''
+        disabled = -2
         wall = -1.0
         empty = 2.0
         start_end = 0
         convert = lambda x: (
-            wall if x == 0 else
+            wall if x == Maze.WALL else
+            disabled if x == Maze.DISABLED else
             empty if type(x) is int else start_end
         )
 
@@ -232,6 +300,18 @@ class Maze(object):
             '\n'.join([' '.join(map(convert, x)) for x in self.maze])
         )
 
+    def load_products(self, filename='../data/tsp-products.txt'):
+        with open(filename) as products:
+            self.product_count = int(products.readline()[0:-2])
+
+            # save all products to a dictionary
+            self.products_dict = {
+                int(product): tuple(map(int, location.split(',')))
+                for product, location in
+                [row[0:-2].split(':') for row in products]
+            }
+            self.products = self.products_dict.values()
+
     @staticmethod
     def from_file(filename):
         '''
@@ -248,6 +328,9 @@ class Maze(object):
                     start=coords.readline()[0:-2].split(','),
                     end=coords.readline()[0:-2].split(',')
                 )
+
+        if 'hard-maze.txt' in filename:
+            maze.load_products(filename.replace('hard-maze.txt', 'tsp-products.txt'))
 
         return maze
 
@@ -309,15 +392,41 @@ def test_mazes(name):
         ),
         'tour_detour': dict(
             name='Simple with obstacle',
-            maze=[
-                [1] * 10, [1] * 10,
-                [1] * 4 + [0] * 2 + [1] * 4,
-                [1] * 4 + [0] * 2 + [1] * 4,
-                ['s'] + [1] * 3 + [0] * 2 + [1] * 3 + ['e'],
-                [1] * 4 + [0] * 2 + [1] * 4,
-                [1] * 4 + [0] * 2 + [1] * 4,
-                [1] * 4 + [0] * 2 + [1] * 4,
-                [1] * 10, [1] * 10]
+            maze=map(stringloader, [
+                '1111111111100111111',
+                '1111111111100111111',
+                '1111111001100111111',
+                '1111111001100111111',
+                '1111111011100001111',
+                's111111001111111111',
+                '1111111001111111111',
+                '1111111001110000111',
+                '1111111001110000000',
+                '1111111001111111111',
+                '1111111111111110000',
+                '0000000000000011111',
+                '1111111111111111111',
+                '1110000000000000000',
+                '1111111111111111111',
+                '1110000000000000000',
+                '1111111111111111111',
+                '111111111110e111111',
+                '0100010100001111111',
+                '0110110111111111111',
+                '0011100010001111111',
+                '0001000011111111111',
+            ]),
+        ),
+        'test2': dict(
+            name='Test2',
+            maze=map(stringloader, [
+                's110000000001111111',
+                '111111111110e111111',
+                '0100010100001111111',
+                '0110110111111111111',
+                '0011100010001111111',
+                '0001000011111111111',
+            ])
         ),
         'chicane': dict(
             name='Chicane',
@@ -358,3 +467,6 @@ if __name__ == '__main__':
 
     for position, direction, pher in options:
         print position, direction, maze.move_direction((4, 4), position)
+
+    print maze.is_diagonal((0, 0), (1, 1))
+    print maze.is_diagonal((1, 1), (0, 0))

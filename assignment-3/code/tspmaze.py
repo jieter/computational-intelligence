@@ -29,9 +29,11 @@ class TSPMaze(object):
 
     def __init__(self, filename='../data/hard-maze.txt'):
         self.maze = Maze.from_file(filename)
-        self.cachefile = filename + '.tsp-results.pickle'
+        self.cachefile = filename + '.tsp-results2.pickle'
 
-        self.load_products()
+        self.maze.load_products()
+        self.num = self.maze.product_count
+        self.products = self.maze.products_dict
 
         # initialize array for the distances.
         if os.path.exists(self.cachefile):
@@ -41,21 +43,7 @@ class TSPMaze(object):
             size = self.num + 1
             self.results = map(list, [[TSPMaze.EMPTY] * size] * size)
 
-            print self.results
-
         np.set_printoptions(suppress=True)
-
-    def load_products(self, filename='../data/tsp-products.txt'):
-        with open(filename) as products:
-            self.num = int(products.readline()[0:-2])
-
-            # save all products to a dictionary
-            self.products = {
-                int(product): tuple(map(int, location.split(',')))
-                for product, location in
-                [row[0:-2].split(':') for row in products]
-            }
-            self.maze.products = self.products.values()
 
     def calculate_paths(self, refine=False):
         maze = self.maze
@@ -72,6 +60,9 @@ class TSPMaze(object):
 
         self.dump_cache()
 
+        aco = ACO(maze, visualize=False, quiet=True, ant_count=40)
+        maze = aco.reconnaissance()
+
         for A, locationA in self.products.items():
             for B, locationB in self.products.items():
                 if A is B:
@@ -81,13 +72,17 @@ class TSPMaze(object):
 
                 print 'Route %d -> %d' % (A, B),
 
-                maze.set_start(locationA)
-                maze.set_end(locationB)
-
+                maze.reset_start_end(locationA, locationB)
+                # print maze
                 start_time = time.time()
 
-                aco = ACO(maze, visualize=False, iterations=10)
-                ant = aco.run(quiet=True)
+                aco = ACO(maze, visualize=False, iterations=8, ant_count=10, ant_max_steps=5000, quiet=True, evaporation=0.2)
+                ant = aco.run()
+
+                if ant is None:
+                    print '1st try failed, try again...'
+                    aco = ACO(maze, visualize=False, iterations=16, ant_count=10, ant_max_steps=5000, quiet=True, evaporation=0.2)
+                    ant = aco.run()
 
                 elapsed = time.time() - start_time
 
@@ -100,9 +95,10 @@ class TSPMaze(object):
                     print 'done (length: %d) in %0.2fs' % (len(ant.trail), elapsed)
                     elapsed_list.append(elapsed)
 
-                print 'running %0.2fs now, average time: %0.2fs' % (
+                print 'running %0.2fs now, average time: %0.2fs (TSP matrix done in: %0.0fs)' % (
                     time.time() - overall_start_time,
-                    mean(elapsed_list)
+                    mean(elapsed_list),
+                    total_paths * mean(elapsed_list)
                 )
                 self.dump_cache()
 
@@ -113,7 +109,6 @@ class TSPMaze(object):
 
             if ant is None:
                 return
-
 
         res = {
             'length': 0,
