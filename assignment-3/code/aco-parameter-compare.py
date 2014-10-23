@@ -48,7 +48,7 @@ def parameter_compare(maze_name, vary_parameter, compute=True):
     filename = '../data/%s-maze.txt' % maze_name
     outputfile = 'compare-graphs/%s/param-compare-%%s.pickle' % maze_name
 
-    iterations = 20
+    iterations = 10
 
     if compute:
         start_time = time.time()
@@ -115,21 +115,21 @@ def parameter_compare(maze_name, vary_parameter, compute=True):
 if __name__ == '__main__':
     start_time = time.time()
 
-    maze_name = 'easy'
-    for param in ('optimize_ants', 'ant_count', 'Q', 'evaporation'):
-        parameter_compare(maze_name, param, compute=True)
+    # maze_name = 'easy'
+    # for param in ('optimize_ants', 'ant_count', 'Q', 'evaporation'):
+    #     parameter_compare(maze_name, param, compute=True)
 
-    maze_name = 'medium'
-    default_settings['Q'] = 250
-    parameters['Q'] = [50, 100, 200, 225, 250, 275, 300, 400, 500, 100]
-    for param in ('Q', 'optimize_ants', 'ant_count',  'evaporation'):
-        parameter_compare(maze_name, param, compute=True)
+    # maze_name = 'medium'
+    # default_settings['Q'] = 250
+    # parameters['Q'] = [50, 100, 200, 225, 250, 275, 300, 400, 500, 100]
+    # for param in ('Q', 'optimize_ants', 'ant_count',  'evaporation'):
+    #     parameter_compare(maze_name, param, compute=True)
 
     maze_name = 'hard'
     default_settings['Q'] = 4000
     default_settings['ant_max_steps'] = 50000
 
-    parameters['Q'] = [50, 1000, 2000, 3000, 3500, 3750, 4000, 4250, 4500, 5000, 6000, 7000, 8000, 10000]
+    parameters['Q'] = [2000, 3000, 3500, 3750, 4000, 4250, 4500, 5000, 6000, 7000, 8000, 10000]
     for param in ('Q', 'optimize_ants', 'ant_count',  'evaporation'):
         parameter_compare(maze_name, param, compute=True)
 

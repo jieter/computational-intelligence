@@ -7,7 +7,7 @@ import pickle
 
 from aco import ACO
 from maze import Maze
-from util import mean
+from util import *
 
 
 class TSPMaze(object):
@@ -31,6 +31,8 @@ class TSPMaze(object):
 
     cachefile = 'tsp-results.pickle'
 
+    updated = 0
+
     def __init__(self, filename='../data/hard-maze.txt'):
         self.maze = Maze.from_file(filename)
         self.cachefile = filename + '.tsp-results.pickle'
@@ -52,9 +54,13 @@ class TSPMaze(object):
         count = self.count()
 
         total_paths = 0.5 * (count - 1) * count
-        print 'Calculate paths between %d products (%d paths total) in maze %s.' % (
-            count, total_paths, maze.name
-        )
+        if refine:
+            total_paths *= 2
+            print 'Trying to find better paths in maze...'
+        else:
+            print 'Calculate paths between %d products (%d paths total) in maze %s.' % (
+                count, total_paths, maze.name
+            )
         overall_start_time = time.time()
         elapsed_list = []
 
@@ -95,12 +101,21 @@ class TSPMaze(object):
 
                 tries = 1
                 settings = self.base_aco_settings.copy()
-                settings.update(dict(
-                    iterations=3,
-                    ant_count=8,
-                    ant_max_steps=4000,
-                    evaporation=0.1
-                ))
+                if refine:
+                    settings.update(dict(
+                        iterations=10,
+                        ant_count=15,
+                        ant_max_steps=4000,
+                        evaporation=0.2
+                    ))
+                else:
+                    settings.update(dict(
+                        iterations=3,
+                        ant_count=8,
+                        ant_max_steps=4000,
+                        evaporation=0.1
+                    ))
+
                 aco = ACO(maze, **settings)
                 ant = aco.run()
 
@@ -111,26 +126,27 @@ class TSPMaze(object):
                     ant = aco.run()
                     tries += 1
 
-                while ant is None and tries < 3:
-                    print 'try %d failed,' % tries,
-                    # we have to reset pheromone to start a really new search
-                    maze.reset_pheromone()
-                    settings.update(dict(
-                        iterations=6,
-                        ant_count=tries * 10,
-                        ant_max_steps=tries * 10000,
-                    ))
-                    aco = ACO(maze, **settings)
-                    ant = aco.run()
+                if not refine:
+                    while ant is None and tries < 3:
+                        print 'try %d failed,' % tries,
+                        # we have to reset pheromone to start a really new search
+                        maze.reset_pheromone()
+                        settings.update(dict(
+                            iterations=6,
+                            ant_count=tries * 10,
+                            ant_max_steps=tries * 10000,
+                        ))
+                        aco = ACO(maze, **settings)
+                        ant = aco.run()
 
-                    tries += 1
+                        tries += 1
 
                 elapsed = time.time() - start_time
                 elapsed_list.append(elapsed)
 
                 if ant is None:
                     self.set_result(A, B, TSPMaze.FAILED, elapsed=elapsed)
-                    print '\n!! not found in %0.2fs, run again to try again. ' % elapsed
+                    print RED, '\n!!', ENDC, ' not found in %0.2fs, run again to try again. ' % elapsed
                     failes += 1
                 else:
                     self.set_result(A, B, ant)
@@ -165,11 +181,16 @@ class TSPMaze(object):
         elif ant is not None:
             if known_length is not None:
                 # compare solution with known, store if better
-                if known_length <= len(ant.trail):
+                if known_length == len(ant.trail):
+                    print 'Equal length',
+                elif known_length < len(ant.trail):
                     print 'Existing is better (%d > %d), not updating.' % (len(ant.trail), known_length),
                     return
                 else:
-                    print 'Updating solution  (%d < %d)' % (len(ant.trail), known_length),
+                    print 'Updating solution  %s(%d < %d)%s' % (
+                        GREEN, len(ant.trail), known_length, ENDC
+                    ),
+                    self.updated += 1
 
             res['length'] = len(ant.trail)
             res['trail'] = list(ant.trail)
@@ -223,7 +244,7 @@ class TSPMaze(object):
             for B, locationB in self.locations():
                 val = self.results[A][B]
                 if val == TSPMaze.FAILED:
-                    ret += 'fail '
+                    ret += RED + 'fail ' + ENDC
                 elif val == TSPMaze.EMPTY:
                     ret += '   . '
                 else:
@@ -245,6 +266,8 @@ if __name__ == '__main__':
         print 'All possible paths calculated, running over it again to refine values.'
         print
         failed = tspmaze.calculate_paths(refine=True)
+
+        print 'Updated %d paths' % tspmaze.updated
 
     else:
         failed = tspmaze.calculate_paths()

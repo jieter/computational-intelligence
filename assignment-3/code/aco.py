@@ -302,15 +302,14 @@ if __name__ == '__main__':
 
     maze = test_mazes(maze_name)
     if maze is None:
-        maze_name = '%s-maze.txt' % maze_name
-        maze = Maze.from_file(os.path.join('..', 'data', maze_name))
+        maze = Maze.from_file(os.path.join('..', 'data', '%s-maze.txt' % maze_name), name=maze_name)
 
+    print '"%s"' % maze_name
     if maze_name in settings:
         settings = settings[maze_name]
     else:
         settings = dict()
 
-    print maze
     print 'Maze "%s" (%d, %d)' % (maze.name, maze.width, maze.height)
     print 'start:', maze.start, 'end:', maze.end
 
@@ -318,7 +317,8 @@ if __name__ == '__main__':
 
     aco = ACO(maze, **settings)
     aco.reconnaissance()
-    aco.visualizer.update('After reconnaissance')
+    aco.visualizer.update('Maze after reconnaissance')
+    print maze
 
     try:
         best = aco.run()
@@ -334,9 +334,9 @@ if __name__ == '__main__':
 
     print maze
 
-    with open('output/solution_%d.txt' % len(best.trail), 'w') as out:
+    with open('output/%s-solution_%d.txt' % (maze.name, len(best.trail)), 'w') as out:
         out.write(best.trail_to_str())
 
     os.system('convert $(for a in output/*.png; do printf -- "-delay 80 %s " $a; done; ) ' +
-              'output/sequence_%d.gif' % len(best.trail))
+              'output/%s-sequence_%d.gif' % (maze.name, len(best.trail)))
     os.system('rm output/*.png')

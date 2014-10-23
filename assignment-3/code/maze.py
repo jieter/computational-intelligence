@@ -2,6 +2,7 @@
 # coding: utf-8
 
 import numpy as np
+from util import *
 
 
 class Maze(object):
@@ -253,10 +254,10 @@ class Maze(object):
         and end points.
         '''
         wall = lambda x: ' ' if x == 1 else \
-                         '▓' if x == Maze.WALL else \
-                         'x' if x == Maze.DISABLED \
-                         else x
-        edge = '▒'
+            CYAN + '▓' + ENDC if x == Maze.WALL else \
+            RED + 'x' + ENDC if x == Maze.DISABLED \
+            else x
+        edge = CYAN + '▒' + ENDC
 
         # format inner walls
         maze = [''.join(map(wall, x)) for x in self.maze]
@@ -313,17 +314,19 @@ class Maze(object):
             self.products = self.products_dict.values()
 
     @staticmethod
-    def from_file(filename):
+    def from_file(filename, name=None):
         '''
         Read maze from file in format specified by assignment.
         Assumes a second file exists with two coordinates for start
         and end points.
         '''
+        if name is None:
+            name = filename
         with open(filename) as mazefile:
             with open(filename.replace('maze.txt', 'coordinates.txt')) as coords:
                 maze = Maze(
                     size=mazefile.readline().split(' '),
-                    name=filename,
+                    name=name,
                     maze=[map(int, row.split(' ')) for row in mazefile],
                     start=coords.readline()[0:-2].split(','),
                     end=coords.readline()[0:-2].split(',')

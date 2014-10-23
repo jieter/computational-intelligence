@@ -9,6 +9,7 @@ if len(sys.argv) < 2:
 a = pickle.load(open(sys.argv[1]))
 b = pickle.load(open(sys.argv[2]))
 
+
 def diff(this, that):
     if len(this) is not len(that):
         return 'Dimensions do not agree'
@@ -30,6 +31,7 @@ def diff(this, that):
 
     return ret
 
+
 def merge(this, that):
     if len(this) is not len(that):
         return 'Dimensions do not agree'
@@ -45,8 +47,6 @@ def merge(this, that):
                 ret[a][b] = this[a][b]
             else:
                 ret[a][b] = that[a][b]
-
-
     return ret
 
 print 'diff between %s and %s' % (sys.argv[1], sys.argv[2])
