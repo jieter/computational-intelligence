@@ -108,11 +108,13 @@ class ACO(object):
             ant_loop_apply, itertools.izip(ants, [self.do_reconnaissance] * self.ant_count)
         ).get(999999)
 
+        disables = set()
         for ant in results:
             for disable in ant.disable_positions:
                 maze.disable_at(disable)
+                disables.add(disable)
 
-        print 'reconnaissance done'
+        print 'reconnaissance done, %d cells disabled' % len(disables)
         return maze
 
     def run(self):
