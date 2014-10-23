@@ -92,29 +92,35 @@ class ACO(object):
 
         return delta_tau
 
-    def reconnaissance(self):
+    def reconnaissance(self, iterations=1):
         maze = self.maze
         if self.do_reconnaissance < 1:
             return maze
 
-        print 'Performing reconnaissance width %d ants for %d steps' % (
-            self.ant_count, self.do_reconnaissance
+        print 'performing reconnaissance with %d ants for %d steps in %d iterations' % (
+            self.ant_count, self.do_reconnaissance, iterations
         )
-        ants = []
-        for i in range(self.ant_count):
-            ants.append(Ant(maze, maze.start))
 
-        results = self.pool.map_async(
-            ant_loop_apply, itertools.izip(ants, [self.do_reconnaissance] * self.ant_count)
-        ).get(999999)
+        disabled = set()
+        start_time = time.time()
+        for iteration in range(iterations):
+            ants = []
+            for i in range(self.ant_count):
+                ants.append(Ant(maze, maze.start))
 
-        disables = set()
-        for ant in results:
-            for disable in ant.disable_positions:
-                maze.disable_at(disable)
-                disables.add(disable)
+            results = self.pool.map_async(
+                ant_loop_apply, itertools.izip(ants, [self.do_reconnaissance] * self.ant_count)
+            ).get(999999)
 
-        print 'reconnaissance done, %d cells disabled' % len(disables)
+            for ant in results:
+                for disable in ant.disable_positions:
+                    maze.disable_at(disable)
+                    disabled.add(disable)
+
+        print 'Reconnaissance done, %d cells disabled in %0.2fs' % (
+            len(disabled),
+            time.time() - start_time
+        )
         return maze
 
     def run(self):

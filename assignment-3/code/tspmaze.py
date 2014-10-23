@@ -68,11 +68,11 @@ class TSPMaze(object):
 
         settings = self.base_aco_settings.copy()
         settings.update(dict(
-            ant_count=40,
-            do_reconnaissance=4000
+            ant_count=10,
+            do_reconnaissance=10000
         ))
         aco = ACO(maze, **settings)
-        maze = aco.reconnaissance()
+        maze = aco.reconnaissance(iterations=4)
 
         i = 1
         failes = 0
@@ -94,7 +94,7 @@ class TSPMaze(object):
                 tries = 1
                 settings = self.base_aco_settings.copy()
                 settings.update(dict(
-                    iterations=10,
+                    iterations=5,
                     ant_count=10,
                     ant_max_steps=5000,
                     evaporation=0.1
@@ -104,9 +104,12 @@ class TSPMaze(object):
 
                 while ant is None and tries < 2:
                     print 'try %d failed,' % tries,
+                    # we have to reset pheromone to start a really new search
+                    maze.reset_pheromone()
                     settings.update(dict(
+                        iterations=15,
+                        ant_count=15,
                         ant_max_steps=10000,
-                        iterations=20
                     ))
                     aco = ACO(maze, **settings)
                     ant = aco.run()
@@ -231,6 +234,7 @@ if __name__ == '__main__':
 
     if tspmaze.done():
         print 'All possible paths calculated, running over it again to refine values.'
+        print
         failed = tspmaze.calculate_paths(refine=True)
 
     else:
