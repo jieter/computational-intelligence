@@ -1,9 +1,8 @@
 #!/usr/bin/env python
 
-import numpy as np
 import os
 import time
-
+import random
 import pickle
 
 from aco import ACO
@@ -48,8 +47,6 @@ class TSPMaze(object):
             size = len(self.locations())
             self.results = map(list, [[TSPMaze.EMPTY] * size] * size)
 
-        np.set_printoptions(suppress=True)
-
     def calculate_paths(self, refine=False):
         maze = self.maze
         count = self.count()
@@ -68,7 +65,7 @@ class TSPMaze(object):
 
         settings = self.base_aco_settings.copy()
         settings.update(dict(
-            ant_count=10,
+            ant_count=5,
             do_reconnaissance=10000
         ))
         aco = ACO(maze, **settings)
@@ -76,8 +73,13 @@ class TSPMaze(object):
 
         i = 1
         failes = 0
-        for A, locationA in self.locations():
-            for B, locationB in self.locations():
+        locationsA = self.locations()
+        random.shuffle(locationsA)
+        locationsA = locationsA
+        for A, locationA in locationsA:
+            locationsB = self.locations()
+            random.shuffle(locationsB)
+            for B, locationB in locationsB:
                 i += 1
 
                 if A is B:
@@ -94,22 +96,29 @@ class TSPMaze(object):
                 tries = 1
                 settings = self.base_aco_settings.copy()
                 settings.update(dict(
-                    iterations=5,
-                    ant_count=10,
-                    ant_max_steps=5000,
+                    iterations=3,
+                    ant_count=8,
+                    ant_max_steps=4000,
                     evaporation=0.1
                 ))
                 aco = ACO(maze, **settings)
                 ant = aco.run()
 
-                while ant is None and tries < 2:
+                if ant is None:
+                    print 'try reverse,',
+                    maze.reset_start_end(locationB, locationA)
+                    aco = ACO(maze, **settings)
+                    ant = aco.run()
+                    tries += 1
+
+                while ant is None and tries < 3:
                     print 'try %d failed,' % tries,
                     # we have to reset pheromone to start a really new search
                     maze.reset_pheromone()
                     settings.update(dict(
-                        iterations=15,
-                        ant_count=15,
-                        ant_max_steps=10000,
+                        iterations=6,
+                        ant_count=tries * 10,
+                        ant_max_steps=tries * 10000,
                     ))
                     aco = ACO(maze, **settings)
                     ant = aco.run()
@@ -128,7 +137,7 @@ class TSPMaze(object):
 
                     print 'done (length: %d) in %0.2fs' % (len(ant.trail), elapsed)
 
-                if i % 15 == 1:
+                if i % self.count() == 1:
                     print '  running %0.2fs now, average time: %0.2fs (TSP matrix done in: %0.0fs)' % (
                         time.time() - overall_start_time,
                         mean(elapsed_list),
