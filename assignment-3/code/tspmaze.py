@@ -168,17 +168,21 @@ class TSPMaze(object):
         if self.results[A][B] not in (self.EMPTY, self.FAILED):
             known_length = self.results[A][B]['length']
 
-            if ant in (TSPMaze.FAILED, None):
-                return
+        if A == B:
+            self.results[A][B] = {
+                'length': 0,
+                'trail': []
+            }
+            return
 
-        res = {
-            'length': 0,
-            'trail': []
-        }
+        if ant is None:
+            return
 
         if ant is TSPMaze.FAILED:
-            res = ant
-        elif ant is not None:
+            self.results[A][B] = self.results[B][A] = ant
+            return
+
+        if ant is not None:
             if known_length is not None:
                 # compare solution with known, store if better
                 if known_length == len(ant.trail):
@@ -192,12 +196,20 @@ class TSPMaze(object):
                     ),
                     self.updated += 1
 
-            res['length'] = len(ant.trail)
-            res['trail'] = list(ant.trail)
+            res = {
+                'length': len(ant.trail),
+            }
             if elapsed is not None:
                 res['elapsed'] = elapsed
 
-        self.results[A][B] = self.results[B][A] = res
+            res.update({
+                'trail': ant.get_trail(self.location(A))
+            })
+            self.results[A][B] = res
+            res.update({
+                'trail': ant.get_trail(self.location(B))
+            })
+            self.results[B][A] = res
 
     def load_cache(self):
         with open(self.cachefile) as f:
@@ -219,6 +231,14 @@ class TSPMaze(object):
 
     def count(self):
         return len(self.locations())
+
+    def location(self, label):
+        if label is 0:
+            return self.maze.start
+        elif label is len(self.products) + 1:
+            return self.maze.end
+        else:
+            return self.products[label]
 
     def locations(self):
         return (

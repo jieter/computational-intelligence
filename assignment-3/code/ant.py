@@ -258,6 +258,26 @@ class Ant(object):
 
         # assert self.is_valid()
 
+    def get_trail(self, start=None):
+        if start is None or start == self.start:
+            return list(self.trail)
+        else:
+            # reverse trail.
+            ant = self.clone().reverse()
+            return list(ant.trail)
+
+    def reverse(self):
+        if not self.done:
+            raise 'Only done ants can be reversed'
+
+        new_list = list(self.position_list)
+        new_list.reverse()
+        new_start = new_list[0]
+
+        self.update_position_list(new_list)
+        self.start = new_start
+        return self
+
     def is_valid(self):
         '''
         Check if trail is valid for this maze.
