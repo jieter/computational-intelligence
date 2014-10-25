@@ -42,9 +42,10 @@ def calcFitness(matr):
     fitness = []
     gesorteerd = 0
     for row in range(0,(len(matr))):
-        totaal = 0
+        totaal = results[0][int(matr[row,0])]['length'];
         for col in range(0,len(matr[N])-1):
             totaal += results[int(matr[row,col])][int(matr[row,(col + 1)])]['length']
+        totaal += results[int(matr[row,(len(matr[N])-1)])][len(results)-1]['length'];
         fitness.append(totaal)
     gesorteerd = sorted(fitness)
     average.append(sum(gesorteerd)/float(len(gesorteerd)))
@@ -117,20 +118,25 @@ with open('chromosomen.pickle','wb') as handle:
 
 winnaar = new[fitness.index(min(fitness)),:]
 
-steps = []
+steps = results[0][int(winnaar[0])]['trail']
 for gen in range(0,len(winnaar)-1):
     steps.append(results[int(winnaar[gen])][int(winnaar[(gen + 1)])]['trail'])
+steps.append(results[int(winnaar[(len(winnaar)-1)])][(len(results)-1)]['trail'])
 
-txtfile = open('steps.txt','w')
-txtfile.write("take product #")
-txtfile.write(str(int(winnaar[0])))
+txtfile = open('steps.txt','w');
+
+txtfile.write(str(int(min(fitness))))
 txtfile.write(";\n")
+txtfile.write("0, 0;\n")
+#txtfile.write("take product #")
+#txtfile.write(str(int(winnaar[0])))
+
 for row in range(0,len(steps)):
     for col in range(0,len(steps[row])):
         txtfile.write(str(int(steps[row][col])))
         txtfile.write(";\n")
-    txtfile.write("take product #")
-    txtfile.write(str(int(winnaar[(row + 1)])))
+    #txtfile.write("take product #")
+    #txtfile.write(str(int(winnaar[(row + 1)])))
     txtfile.write(";\n")
 
 text_file = open('chromosomen.txt','w')
@@ -139,3 +145,10 @@ for row in range(0,len(new)):
         text_file.write(str(int(new[row,col])))
         text_file.write(", ")
     text_file.write("\n")
+"""
+txtfile.write(str(int(results[0][19]['length'])))
+txtfile.write(";\n0,0;\n")
+for stapje in range(0,len(results[0][19]['trail'])):
+    txtfile.write(str(int(results[0][19]['trail'][stapje])))
+    txtfile.write(";\n")
+"""
