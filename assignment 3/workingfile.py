@@ -69,8 +69,6 @@ def calcNewFamily(matr):
             place1 = randrange(0,(len(toppers[i,:])-1))
             place2 = randrange(place1,len(toppers[i,:]))
             if(i == j):
-                place1 = randrange(0,(len(toppers[i,:])-1))
-                place2 = randrange(place1,len(toppers[i,:]))
                 deel = toppers[i,place1:place2]
                 invdeel = []
                 for k in reversed(deel):
