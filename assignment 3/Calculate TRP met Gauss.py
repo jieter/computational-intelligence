@@ -70,12 +70,12 @@ def calcNewFamily(matr):
             keus1 = (int(abs(gauss(0,stddeviation)) + 0.5))
             keus2 = (int(abs(gauss(0,stddeviation)) + 0.5))
             while keus1 >= 200:
-                print(keus1)
+                #print(keus1)
                 keus1 = (int(abs(gauss(0,stddeviation)) + 0.5))
             else:
                 papa = gesorteerd[keus1,:]
             while keus2 >= 200:
-                print(keus2)
+                #print(keus2)
                 keus2 = (int(abs(gauss(0,stddeviation)) + 0.5))
             else:        
                 mama = gesorteerd[keus2,:]
@@ -124,7 +124,7 @@ def calcNewFamily(matr):
 
 new, fitness = calcNewFamily(chromosomen)  
 xas = [0]
-for a in range(1,100):
+for a in range(1,1000):
     xas.append(a)
     new, fitness = calcNewFamily(new)
 
