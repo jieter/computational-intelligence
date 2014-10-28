@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import os
+import sys
 import time
 import random
 import pickle
@@ -33,9 +34,14 @@ class TSPMaze(object):
 
     updated = 0
 
-    def __init__(self, filename='../data/hard-maze.txt'):
+    def __init__(self, filename='../data/hard-maze.txt', refine=False):
         self.maze = Maze.from_file(filename)
+        self.original_start = tuple(self.maze.start)
+        self.original_end = tuple(self.maze.end)
+
         self.cachefile = filename + '.tsp-results.pickle'
+        self.refine = refine
+        self.do_reconnaissance = 0
 
         self.maze.load_products()
         self.num = self.maze.product_count
@@ -49,33 +55,88 @@ class TSPMaze(object):
             size = len(self.locations())
             self.results = map(list, [[TSPMaze.EMPTY] * size] * size)
 
-    def calculate_paths(self, refine=False):
-        maze = self.maze
+
+    def find_path(self, maze, locationA, locationB):
+        maze.reset_start_end(locationA, locationB)
+
+        tries = 1
+        settings = self.base_aco_settings.copy()
+        if self.refine:
+            settings.update(dict(
+                iterations=10,
+                ant_count=15,
+                ant_max_steps=4000,
+                evaporation=0.2
+            ))
+        else:
+            settings.update(dict(
+                iterations=3,
+                ant_count=8,
+                ant_max_steps=4000,
+                evaporation=0.1
+            ))
+
+        aco = ACO(maze, **settings)
+        ant = aco.run()
+
+        if ant is None:
+            print 'try reverse,',
+            maze.reset_start_end(locationB, locationA)
+            aco = ACO(maze, **settings)
+            ant = aco.run()
+            tries += 1
+
+        if not self.refine:
+            while ant is None and tries < 3:
+                print 'try %d failed,' % tries,
+                # we have to reset pheromone to start a really new search
+                maze.reset_pheromone()
+                settings.update(dict(
+                    iterations=6,
+                    ant_count=tries * 10,
+                    ant_max_steps=tries * 10000,
+                ))
+                aco = ACO(maze, **settings)
+                ant = aco.run()
+
+                tries += 1
+
+        return ant
+
+    def calculate_paths(self):
         count = self.count()
 
         total_paths = 0.5 * (count - 1) * count
-        if refine:
+        if self.refine:
             total_paths *= 2
             print 'Trying to find better paths in maze...'
         else:
             print 'Calculate paths between %d products (%d paths total) in maze %s.' % (
-                count, total_paths, maze.name
+                count, total_paths, self.maze.name
             )
         overall_start_time = time.time()
         elapsed_list = []
 
+        # # clear paths from/to start/end
+        # for A in range(len(self.locations())):
+        #     self.set_result(0, A, TSPMaze.FAILED)
+        #     self.set_result(19, A, TSPMaze.FAILED)
+
+        # set path from from/to same node to zero
         for A in range(len(self.locations())):
             self.set_result(A, A, None)
-
         self.dump_cache()
 
-        settings = self.base_aco_settings.copy()
-        settings.update(dict(
-            ant_count=5,
-            do_reconnaissance=10000
-        ))
-        aco = ACO(maze, **settings)
-        maze = aco.reconnaissance(iterations=4)
+        if self.do_reconnaissance > 0:
+            settings = self.base_aco_settings.copy()
+            settings.update(dict(
+                ant_count=5,
+                do_reconnaissance=self.do_reconnaissance
+            ))
+            aco = ACO(self.maze, **settings)
+            maze = aco.reconnaissance(iterations=4)
+        else:
+            maze = self.maze
 
         i = 1
         failes = 0
@@ -90,58 +151,15 @@ class TSPMaze(object):
 
                 if A is B:
                     continue
-                if not refine and self.results[B][A] not in (TSPMaze.EMPTY, TSPMaze.FAILED):
+                if not self.refine and self.results[B][A] not in (TSPMaze.EMPTY, TSPMaze.FAILED):
                     continue
 
-                print 'Route %2d -> %2d' % (A, B),
-
-                maze.reset_start_end(locationA, locationB)
+                print 'Route #%2d (%2d, %2d) -> #%2d (%2d, %2d)' % ((A, ) + locationA + (B, ) + locationB),
 
                 start_time = time.time()
-
-                tries = 1
-                settings = self.base_aco_settings.copy()
-                if refine:
-                    settings.update(dict(
-                        iterations=10,
-                        ant_count=15,
-                        ant_max_steps=4000,
-                        evaporation=0.2
-                    ))
-                else:
-                    settings.update(dict(
-                        iterations=3,
-                        ant_count=8,
-                        ant_max_steps=4000,
-                        evaporation=0.1
-                    ))
-
-                aco = ACO(maze, **settings)
-                ant = aco.run()
-
-                if ant is None:
-                    print 'try reverse,',
-                    maze.reset_start_end(locationB, locationA)
-                    aco = ACO(maze, **settings)
-                    ant = aco.run()
-                    tries += 1
-
-                if not refine:
-                    while ant is None and tries < 3:
-                        print 'try %d failed,' % tries,
-                        # we have to reset pheromone to start a really new search
-                        maze.reset_pheromone()
-                        settings.update(dict(
-                            iterations=6,
-                            ant_count=tries * 10,
-                            ant_max_steps=tries * 10000,
-                        ))
-                        aco = ACO(maze, **settings)
-                        ant = aco.run()
-
-                        tries += 1
-
+                ant = self.find_path(maze, locationA, locationB)
                 elapsed = time.time() - start_time
+
                 elapsed_list.append(elapsed)
 
                 if ant is None:
@@ -165,6 +183,7 @@ class TSPMaze(object):
 
     def set_result(self, A, B, ant=None, elapsed=None):
         known_length = None
+
         if self.results[A][B] not in (self.EMPTY, self.FAILED):
             known_length = self.results[A][B]['length']
 
@@ -196,20 +215,27 @@ class TSPMaze(object):
                     ),
                     self.updated += 1
 
-            res = {
-                'length': len(ant.trail),
-            }
-            if elapsed is not None:
-                res['elapsed'] = elapsed
+            locationA = self.location(A)
+            locationB = self.location(B)
+            # print 'A: ', A, type(A), locationA
+            # print 'B: ', B, type(B), locationB
 
-            res.update({
-                'trail': ant.get_trail(self.location(A))
-            })
-            self.results[A][B] = res
-            res.update({
-                'trail': ant.get_trail(self.location(B))
-            })
-            self.results[B][A] = res
+            # print 'saving A->B'
+            self.results[A][B] = dict(
+                start=locationA,
+                end=locationB,
+                length=len(ant.trail),
+                trail=ant.get_trail(start=locationA, end=locationB)
+            )
+
+            # print '\nsaving B->A'
+            self.results[B][A] = dict(
+                start=locationB,
+                end=locationA,
+                length=len(ant.trail),
+                trail=ant.get_trail(start=locationB, end=locationA)
+            )
+            # print
 
     def load_cache(self):
         with open(self.cachefile) as f:
@@ -233,19 +259,28 @@ class TSPMaze(object):
         return len(self.locations())
 
     def location(self, label):
-        if label is 0:
-            return self.maze.start
-        elif label is len(self.products) + 1:
-            return self.maze.end
+        if label == 0:
+            return self.original_start
+        elif label == len(self.products) + 1:
+            return self.original_end
         else:
             return self.products[label]
 
     def locations(self):
         return (
-            [(0, self.maze.start)] +
+            [(0, self.original_start)] +
             self.products.items() +
-            [(len(self.products) + 1, self.maze.end)]
+            [(len(self.products) + 1, self.original_end)]
         )
+    def visualize_route(self, a, b):
+        print self.results[a][b]
+
+        a_coord = self.location(a)
+        b_coord = self.location(b)
+        print a_coord, b_coord
+
+        trail = self.results[a][b]['trail']
+        return self.maze.visualize_trail(a_coord, b_coord, trail)
 
     def result_matrix(self):
         '''
@@ -279,13 +314,23 @@ if __name__ == '__main__':
     tspmaze = TSPMaze()
     print '0 = start, %d = end' % (tspmaze.count() - 1)
 
+    # for l in tspmaze.locations():
+    #     print l
+
+
     print tspmaze.result_matrix()
-    print
+
+    # for i in range(20):
+    #     print i, tspmaze.location(i)
+    # import sys
+    # sys.exit()
+    # print
 
     if tspmaze.done():
         print 'All possible paths calculated, running over it again to refine values.'
         print
-        failed = tspmaze.calculate_paths(refine=True)
+        tspmaze.refine = True
+        failed = tspmaze.calculate_paths()
 
         print 'Updated %d paths' % tspmaze.updated
 

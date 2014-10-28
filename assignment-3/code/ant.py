@@ -258,12 +258,19 @@ class Ant(object):
 
         # assert self.is_valid()
 
-    def get_trail(self, start=None):
+    def get_trail(self, start=None, end=None):
+
         if start is None or start == self.start:
             return list(self.trail)
         else:
             # reverse trail.
-            ant = self.clone().reverse()
+            ant = self.clone()
+            ant.maze = ant.maze.clone()
+            ant.maze.set_start(start)
+            ant.maze.set_end(end)
+
+            ant.update_position_list(ant.position_list)
+            ant.reverse()
             return list(ant.trail)
 
     def reverse(self):
@@ -292,8 +299,9 @@ class Ant(object):
         (start x, y);
         step;step;step;step;
         '''
+        trail = self.get_trail()
         return '%d;\n%d,%d;\n%s' % (
-            len(self.trail), self.start[0], self.start[1], ';'.join(map(str, self.trail)),
+            len(trail), self.start[0], self.start[1], ';'.join(map(str, trail)),
         )
 
     def clone(self):

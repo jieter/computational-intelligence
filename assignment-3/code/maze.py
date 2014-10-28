@@ -17,8 +17,7 @@ class Maze(object):
     PATH = 1
     START = 's'
     END = 'e'
-    WALKABLE = (PATH, START, END)
-
+    WALKABLE = (PATH, START, END, 'a', 'b', 'v', '^', '>', '<')
     WALL = 0
     DISABLED = -1
 
@@ -50,6 +49,14 @@ class Maze(object):
         self.reset_pheromone()
 
         self.products = []
+
+    def clone(self):
+        return Maze(
+            maze=self.original_maze,
+            start=self.start,
+            end=self.end,
+            name=str(self.name)
+        )
 
     def reset_pheromone(self):
         self.pheromone = np.full((self.height, self.width), 0.01)
@@ -114,7 +121,7 @@ class Maze(object):
 
     def peek_dir(self, point, direction):
         '''
-        Peek in direction
+        Peek in direction, return next point
         '''
         moves = self.peek(point)
         if len(moves) == 0:
@@ -197,11 +204,14 @@ class Maze(object):
         self.set_start(start)
         self.set_end(end)
 
-    def is_valid_trail(self, start, trail):
+    def is_valid_trail(self, start, trail, end=None):
         '''
         Check if trail is valid for this maze.
         '''
         position = start
+
+        if end is None:
+            end = self.end
 
         for move in trail:
             n = self.peek_dir(position, move)
@@ -211,7 +221,7 @@ class Maze(object):
             else:
                 position = n[0]
 
-        return position == self.end
+        return position == end
 
     def is_valid_position_list(self, positions):
         if positions[0] != self.start or positions[-1] != self.end:
@@ -247,6 +257,46 @@ class Maze(object):
                     self.end = (x, y)
 
         return self.start is not None and self.end is not None
+
+    def visualize_trail(self, start, end, trail):
+        maze = self.clone()
+
+        p = start
+
+        error = ''
+
+        def dir_char(d):
+            if d is Maze.WEST:
+                return '<'
+            elif d is Maze.EAST:
+                return '>'
+            elif d is Maze.SOUTH:
+                return 'v'
+            elif d is Maze.NORTH:
+                return '^'
+
+        for move in trail:
+            next_pos = maze.peek_dir(p, move)
+
+            if next_pos is None:
+                print p, maze.peek(p)
+                continue
+
+            next_pos = next_pos[0]
+            maze.set_at(next_pos, dir_char(move))
+            p = next_pos
+
+        if p != end:
+            error = '\nRoute not complete!!'
+
+        maze.set_at(start, 'a');
+        maze.set_at(end, 'b');
+
+        return 'trail: %s \n\n%s' % (
+            ';'.join(map(dir_char, trail)),
+            maze.ascii_formatted() + error
+        )
+
 
     def ascii_formatted(self):
         '''

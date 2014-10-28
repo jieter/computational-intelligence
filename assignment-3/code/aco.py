@@ -8,7 +8,7 @@ import sys
 import time
 import traceback
 
-from ant import Ant
+from ant import Ant, compare_trails
 from maze import Maze, test_mazes
 from util import mean
 from visualize import Visualizer
@@ -66,6 +66,8 @@ class ACO(object):
     multiprocessing = True
 
     do_reconnaissance = 4000
+
+    maze_elimination = True
 
     def __init__(self, maze, **settings):
         self.maze = maze
@@ -178,10 +180,11 @@ class ACO(object):
                     print 'Optimisation reduced trail langth with an average of', mean(opts)
 
             # disable the dead ends found by the ant
-            for ant in self.ants:
-                if ant is not None:
-                    for p in ant.disable_positions:
-                        self.maze.disable_at(p)
+            if self.maze_elimination:
+                for ant in self.ants:
+                    if ant is not None:
+                        for p in ant.disable_positions:
+                            self.maze.disable_at(p)
 
             # select the best ant:
             if len(done_ants) > 0:
@@ -279,7 +282,7 @@ if __name__ == '__main__':
             Q=4000,
             iterations=30,
             ant_count=30,
-            evaporation=0.5,
+            evaporation=0.8,
             do_reconnaissance=8000,
         ),
         'insane': dict(
@@ -334,9 +337,12 @@ if __name__ == '__main__':
 
     print maze
 
+    if maze_name == 'test2':
+        compare_trails(maze, best.get_trail(maze.start), best.get_trail(maze.end))
+
     with open('output/%s-solution_%d.txt' % (maze.name, len(best.trail)), 'w') as out:
         out.write(best.trail_to_str())
 
     os.system('convert $(for a in output/*.png; do printf -- "-delay 80 %s " $a; done; ) ' +
               'output/%s-sequence_%d.gif' % (maze.name, len(best.trail)))
-    os.system('rm output/*.png')
+    os.system('rm output/*initial.png')

@@ -125,11 +125,19 @@ if __name__ == '__main__':
     # for param in ('Q', 'optimize_ants', 'ant_count',  'evaporation'):
     #     parameter_compare(maze_name, param, compute=True)
 
-    maze_name = 'hard'
-    default_settings['Q'] = 4000
-    default_settings['ant_max_steps'] = 50000
+    # maze_name = 'hard'
+    # default_settings['Q'] = 4000
+    # default_settings['ant_max_steps'] = 50000
 
-    parameters['Q'] = [2000, 3000, 3500, 3750, 4000, 4250, 4500, 5000, 6000, 7000, 8000, 10000]
+    # parameters['Q'] = [2000, 3000, 3500, 3750, 4000, 4250, 4500, 5000, 6000, 7000, 8000, 10000]
+    # for param in ('Q', 'optimize_ants', 'ant_count',  'evaporation'):
+    #     parameter_compare(maze_name, param, compute=True)
+
+    maze_name = 'insane'
+    default_settings['Q'] = 1000
+    default_settings['ant_max_steps'] = 10000
+
+    parameters['Q'] = [100, 500, 750, 1000, 1250, 1500, 2000, 3000]
     for param in ('Q', 'optimize_ants', 'ant_count',  'evaporation'):
         parameter_compare(maze_name, param, compute=True)
 
