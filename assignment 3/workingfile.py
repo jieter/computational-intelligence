@@ -116,7 +116,8 @@ with open('chromosomen.pickle','wb') as handle:
 
 winnaar = new[fitness.index(min(fitness)),:]
 
-steps = results[0][int(winnaar[0])]['trail']
+steps = []
+#results[0][int(winnaar[0])]['trail']
 for gen in range(0,len(winnaar)-1):
     steps.append(results[int(winnaar[gen])][int(winnaar[(gen + 1)])]['trail'])
 steps.append(results[int(winnaar[(len(winnaar)-1)])][(len(results)-1)]['trail'])
