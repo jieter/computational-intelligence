@@ -16,7 +16,7 @@
 
 % Hyperref package, clickable internal links.
 % colorlinks to remove ugly boxes around links...
-% \usepackage[colorlinks]{hyperref}
+\usepackage[colorlinks]{hyperref}
 
 \makeatletter
 \newcommand*{\centerfloat}{%
@@ -37,10 +37,7 @@
 \usepackage{pgf}
 \usepackage{tikz}
 \usetikzlibrary{arrows,automata, shapes}
-
 \usepackage{todonotes}
-
-\input{images/image-grids.tex}
 
 \title{TI2736-A Assignment 3: Path finding \& TSP}
 
@@ -48,6 +45,10 @@
     David Akkerman - 4220390 \\
     Jan Pieter Waagmeester - 1222848 \\
 }
+
+\input{images/compare.tex}
+% stub to make it work in writelatex without all the images.
+% \newcommand{\ACOcompare}[3]{\label{#1-#2} \fbox{Hier komt een afbeelding}}
 
 \begin{document}
 \maketitle
@@ -58,7 +59,7 @@
     \item
         \begin{enumerate}[-]
             \item Lange doodlopende straten
-            \item Straten met heel veel korte doodlopende zijstraten
+            \item Straten met heel veel (korte) doodlopende zijstraten
             \item Grote open gebieden
         \end{enumerate}
 
@@ -71,13 +72,13 @@
     % 3. Give an equation for the evaporation. How much pheromone will vaporise every iteration? This equation should contain variables which you can use to optimize your algorithm. What is the purpose of pheromone evaporation?
     \item Het verdampen van de feromoon is zinnig om niet in een lokaal optimum te blijven hangen. Doordat de waarde in elke cel met een bepaalde verdampingsfactor ($\rho$) afneemt is er kans dat een andere (wellicht betere) route wordt gekozen.
     $$\tau_{ij} = (1 -\rho) \cdot \tau_{ij} + \sum_{k=1}^m \Delta\tau_{ij}^k$$
-    \todo {Er moet in ieder geval een vergelijking komen. Wellicht ook met nog wat uitleg en hoe het geoptimaliseerd wordt}
+    In deze formule is alleen de linker term $(1 - \rho) \cdot \tau_{ij}$ de verdamping, de andere term beschrijft het toevoegen van feromoon op de door de mieren gebruikte paden.
 
     % 4. Give a short pseudo-code of your ant-algorithm at this stage. If you added any extra functionality to the normal algorithm, please mention and explain them briefly.
     \item Om te beginnen moeten we wat dingen initializeren: een stel mieren en een feromoon-matrix. Vervolgens laten we elke mier een pad zoeken in een matrix waarin de feromoon-waarden in elke cel gelijk zijn.
 
     Nadat alle mieren het einde gevonden hebben (of getermineerd zijn omdat ze er veel te lang over doen), kiezen we de beste mier uit.
-    We laten een bebaald deel $(1 - \alpha) \cdot \tau_{xy}$ verdampen en tellen bij de cellen waar ons beste miertje geweest is een waarde $Q/ |\text{ant}| $ op.
+    We laten een bebaald deel $(1 - \rho) \cdot \tau_{xy}$ verdampen en tellen bij de cellen waar ons beste miertje geweest is een waarde $Q/ |\text{ant}| $ op.
 
     Daarna gaat het weer opnieuw tot we het aantal iteraties hebben gehad.
     \begin{lstlisting}
@@ -89,41 +90,57 @@ for i = 0 ... iterations
         ant.find_naive_solution(halt_after_steps=10000)
 
     best_ant = select_best(ants)
-
-    pheromone = (1 - alpha) * pheromone
+    pheromone = (1 - rho) * pheromone % evaporation
 
     for p in each best_ant.route
         pheromone (p) += Q / length(best-ant)
 \end{lstlisting}
-\todo {<-}Ze vragen echt om een ant algorithm, maar hier wordt die als 'vanzelfsprekend' beschouwd en wordt de feromooncode geïllustreerd.
+
+Het stappen van de afzonderlijke mieren kan als volgt worden weergegeven:
+\begin{lstlisting}
+function find_naive_solution():
+    position = maze.start
+    trail = []
+    while position != mazeend:
+        moves = maze.get_valid_moves(position)
+        move = choose_proportionally_to_tau(moves)
+
+        trail.add(move)
+        position = maze.move(move)
+
+    return trail
+\end{lstlisting}
+In de volgende vraag bespreken we enkele uitbreidingen voor dit basisalgoritme.
+
     % 5. Improve the ant algorithm using your own insight. Describe how you improved the standard algorithm; which problems are you tackling and how? Limit yourself to 1 A4 text (excluding aiding figures).
     \item
         We hebben een aantal versnellingsmanieren bedacht en ook bijna allemaal geïmplementeerd.
-        \textbf{Doolhofeliminatie} \\
         \begin{description}
-            \item[Doodlopende gangen] Als een mier vanaf een bepaalde positie nog maar één kant op kan (terug), zit hij aan het einde van een doodlopende gang. We markeren die plek in de maze dan als muur, zodat er in het vervolg geen mier meer probeert in te lopen.
-            \item[Open ruimtes] Hoekjes in een open ruimte kunnen worden weggestreept, als er iets bekend is over de aangrenzende cellen. Als een mier achtereenvolgens een hoekje en daarna twee cellen met voldoende ruimte tegenkomt waarbij de laatste op de diagonaal zit van het hoekje, kan het hoekje worden afgestreept.
+            \item[Doolhofeliminatie]
+                Door op een slimme manier te kijken of cellen in het doolhof wel nodig bekeken moeten worden, kunnen we een deel van de gangen afsluiten:
+                \begin{figure}[!ht]
+                    \centering
+                    \includegraphics[width=\textwidth]{images/maze-elimination.png}
+                    \caption{Voorbeeld van eliminatie van doodlopende stukken. Links na de $1^e$ iteratie, rechts na de $30^e$. Donkerblauwe vlakken zijn door de mieren 'uitgezet'.}
+                    \label{elimination}
+                \end{figure}
+              \begin{description}
+                  \item[Doodlopende gangen] Als een mier vanaf een bepaalde positie nog maar één kant op kan (terug), zit hij aan het einde van een doodlopende gang. We markeren die plek in de maze dan als muur, zodat er in het vervolg geen mier meer probeert in te lopen.
+                  \item[Open ruimtes] Hoekjes in een open ruimte kunnen worden weggestreept, als er iets bekend is over de aangrenzende cellen. Als een mier achtereenvolgens een hoekje en daarna twee cellen met voldoende ruimte tegenkomt waarbij de laatste op de diagonaal zit van het hoekje, kan het hoekje worden afgestreept. Een voorbeeld in de \textit{insane} maze is te zien in figuur \ref{elimination}.
 
-            Merk op dat dit bij ons soms mis gaat doordat de mieren afzonderlijk te werk gaan in eigen threads. Het kan dus zijn dat twee of meer mieren er samen voor zorgen dat er een cruciale gang wordt afgesloten. Dit is wel op te lossen, maar gaat voorbij aan deze opdracht.
+                  Merk op dat dit bij ons soms mis gaat doordat de mieren afzonderlijk te werk gaan in eigen threads. Het kan dus zijn dat twee of meer mieren er samen voor zorgen dat er een cruciale gang wordt afgesloten. Dit is wel op te lossen, maar gaat voorbij aan deze opdracht.
+                \end{description}
 
-        \end{description}
-
-        \begin{figure}[!ht]
-            \centering
-            \includegraphics[width=\textwidth]{images/maze-elimination.png}
-            \caption{Voorbeeld van eliminatie van doodlopende stukken. Links na de $1^e$ iteratie, rechts na de $30^e$. Donkerblauwe vlakken zijn door de mieren 'uitgezet'.}
-        \end{figure}
-
-        \textbf{Probeer min mogelijk over eigen pad te lopen} \\
+        \item[Probeer min mogelijk over eigen pad te lopen]
         Het heeft niet veel zin om terug te keren waar we al geweest zijn. We geven daarom bij het kiezen van de volgende stap de voorkeur aan de posities waar we nog niet geweest zijn.
 
         Alleen als het niet anders kan keren we weer terug op of over onze route.
 
-        \textbf{Gebruik het pad van de beste mier over alle iteraties ook bij de feromoon-update} \\
+        \item[Elitisme] Gebruik het pad van de beste mier over alle iteraties ook bij de feromoon-update
         Door de beste mier in de run van het algoritme tot nu toe te onthouden en elke keer ook te gebruiken voor de update.
 
 
-        \textbf{Optimalisatie van het gevonden pad} \\
+        \item[Optimalisatie van het gevonden pad]
         Vaak is een door een mier gevonden pad niet bijzonder efficient, zeker aan het begin. We kunnen zorgen dat we niet op te veel plekken feromoon neerleggen door voor dat te doen het pad van elke mier nog te optimaliseren:
             \begin{enumerate}[-]
                 \item Als de mier langs het einde loopt, direct naar het einde lopen en de rest van de route overslaan.
@@ -131,55 +148,81 @@ for i = 0 ... iterations
                 \item Als een mier een rondje loopt dat stuk overslaan.
             \end{enumerate}
 
-        \textbf{Andere, niet-geimplementeerde ideeën} \\
+        \item[Overige ideeën]
         Naast de voorgaande ideeën hebben we nog meer ideeën, waar voor de implementatie helaas de tijd ontbrak:
           \begin{enumerate}[-]
               \item Alle mogelijke stappen hebben lengte $1$, omdat we in een grid werken. We zouden dit kunnen transformeren naar een graaf waarbij we de kruispunten zien als nodes. Dat scheelt een hele hoop mogelijke stappen, en er onstaat variatie in lengte.
           \end{enumerate}
 
+      \end{description}
+
 
     % 6. Your task is to find a decent set of parameters for each of the grading mazes. You may do so by varying the parameters and subsequently running your algorithm. If your algorithm converges fast to a good route, your parameters are decent. What is ‘converging fast’? Figure that out by varying the parameters.
     % Report your tactic upon how to vary the parameters. Assist your text with graphs showing relationships between the parameters and the speed of convergence. Limit yourself to 1/2 A4 text (excluding aiding graphs - and we like nice informative graphs, so use them!).
-    \item We hebben het algoritme laten lopen voor een aantal verschillende waarden van de parameters $Q$, \verb|ant_count|, $\alpha$ and \verb|optimize_ants|. Deze waarden hebben we 20 keer gevarieeerd voor elke doolhof terwijl de andere op een guestimated waarde stonden. Bij elke set van runs meten we drie dingen: run time, in welke iteratie de beste route voor het eerst voorkomt   en de lengte van de beste route.
-    Het was even rekenen (1000x easy maze, 760x medium maze, \todo{hard maze}x hard maze), maar levert een hoop ($4 \cdot 3 \cdot 3$) zinnige plaatjes op.
+    \item We hebben het algoritme laten lopen voor een aantal verschillende waarden van de parameters $Q$, \verb|ant_count|, $\rho$ and \verb|optimize_ants|. Deze waarden hebben we 20 keer gevarieeerd voor elke doolhof terwijl de andere op een guestimated waarde stonden. Bij elke set van runs meten we drie dingen: run time, in welke iteratie de beste route voor het eerst voorkomt en de lengte van de beste route.
+    Het was even rekenen, maar levert een hoop plaatjes op. Helaas zijn niet alle plaatjes hard maze gelukt en was er geen tijd meer om ze opnieuw door te rekenen\footnote{Nog beter zou zijn meerdere parameters tegelijk te varieren, maar dat levert uiteraard nog veel meer rekenwerk op.}.
+
+    Excuus voor de wat kleine plaatjes, maar ze zijn goed zoombaar en anders werd het wel erg lang allemaal...\footnote{Eventueel voor meer plaatjes: \url{https://github.com/jieter/computational-intelligence/tree/master/assignment-3/code/compare-graphs}}
+
+
+
+    \ACOcompare{easy}{ant_count}{ant count}
+    \ACOcompare{medium}{ant_count}{ant count}
+    \ACOcompare{hard}{optimize_ants}{ant trail optimisation}
+    \ACOcompare{insane}{Q}{$Q$}
+    \ACOcompare{insane}{evaporation}{$\rho$ (evaporation)}
+
+    \newpage
 
     \begin{description}
-        \item[Easy maze] Op grond van deze plaatjes maakt het niet zo veel uit wat we voor parameters gebruiken. Sowieso maakt het allemaal niet zoveel uit, want deze maze is zo klein dat de kortste route altijd wel vrij snel gevonden wordt.
+        \item[Easy maze] Op grond van deze plaatjes maakt het niet zo veel uit wat we voor parameters gebruiken. Sowieso maakt het allemaal niet zoveel uit, want deze maze is zo klein dat de kortste route bijna altijd wel vrij snel gevonden wordt.
+
+        Met heel veel mieren is de kans zelfs vrij groot dat de beste oplossing al in de eerste iteratie gevonden wordt (zie figuur \ref{easy-ant_count}).
+
         \item[Medium maze]
+        We zien hier, bijvoorbeeld in figuur~\ref{medium-ant_count} dat het vanaf 12 mieren niet zoveel zin meer heeft om meer mieren toe te voegen.
+
         \item[Hard maze]
+        Bij de hard maze is goed zichtbaar dat ons padoptimalisatiealgoritme voor het pad van afzonderlijke mieren een zinnige verbetering is: het halveert de run time van het algoritme (figuur~\ref{hard-optimize_ants}). Bovendien levert het ook nog eens kortere eindoplossingen op.
+
         \item[Insane maze]
+        De insane maze laat een ander beeld zien (figuren \ref{insane-Q} en \ref{insane-evaporation}). Waardes voor $\rho$ rond de $0.4$ lijken hier vrij goed te werken om snel klaar te zijen, maar lage waardes leveren weer gemiddeld betere oplossingen op. Ook hier heeft het weinig zin om meer mieren toe te voegen dan ongeveer $15$.
     \end{description}
+
 
     Dat brengt ons uiteindelijk bij de volgende waarden:
 
-    \begin{tabular}{l|llll}
+    \begin{center}
+    \newcommand\true{\texttt{True}}
+    \begin{tabular}{l|rrrr}
                                 & easy  & medium    & hard  & insane \\ \hline \hline
-        \# iterations           &       &           &       &       \\
-        $Q$                     & 38    &           &       &       \\
-        \verb|ant_count|        & 50    &           &       &       \\
-        $\alpha$                &       &           &       &       \\
-        \verb|optimize_ants|    & \verb|True| &     &       &       \\ \hline
-        Kortste gevonden route  & 38    & 141       &       &       \\
+        \# iterations           & 10    & 15        & 30    & 20     \\
+        $Q$                     & 50    & 300       & 4000  & 1000   \\
+        \verb|ant_count|        & 10    & 15        & 40    & 50     \\
+        $\rho$ (evaporation)    & 0.15  & 0.4       & 0.4   & 0.5    \\
+        \verb|optimize_ants|    & \true & \true     & \true & \true  \\ \hline
+        Kortste gevonden route  & 38    & 141       & 837   & 295    \\
 
     \end{tabular}
+    \end{center}
+    Merk op dat door gebruik van elitisme een hoge waarde van evaporatie als eenmaal een korte overall route gevonden is niet zoveel meer doet omdat die route elke keer versterkt wordt. We zien dus ook dat veel iteraties met dit algoritme minder zin heeft.
 
-    \newpage
-    % \ACOcompare{}{80mm}
-
-    \todo{medium en hard maze invoegen}
-
-    \todo{Plaatjes maken voor insane maze en eventueel invoegen?}
-
-%     \ACOcompare{medium}{80mm}
 
     % 7. Using your answer to the previous question, can you say something about the dependency of the parameters on the maze size / complexity? Aim at ≈ 1/4 A4.
-    \item
+    \item Zoals aan het einde van de vorige vraag al opgemerkt is het waarschijnlijk dat doordat we globaal en iteratie-elitisme gebruiken (alleen de global best en iteration best doen mee met de feromoon-update), de waarden van $Q$ en $\rho$ minder relevant zijn.
 
+    In het algemeen lijkt het wel zo te zijn dat als een maze meer open ruimtes heeft, een hogere waarde van $\rho$ beter werkt.
 
+    Wat deze observaties ingewikkeld maakt is het maze-eliminatie-algoritme wat we hebben toegevoegd, wat er voor zorgt dat gedurende de loop van het algoritme het doolhof verandert: er worden doodlopende gangen afgestoten en open ruimtes dichtgebouwd.
+
+    Het aantal mieren is vooral afhankelijk van de grootte van de maze: meer mieren bij grotere doolhoven.
+
+    Voor de waarde van $Q$ voldoet het prima om het algoritme eerst een keer te laten lopen met een semiwillekeurige waarde en dan de kortste gevonden lengte als waarde voor $Q$ te gebruiken.
+
+    Het optimaliseren van het pad (\verb|optimize_ants|) behoeft niet veel discussie. Dat is gewoon altijd beter om aan te hebben.
 
 \end{enumerate}
 
-\newpage
 \section*{3.2: The Traveling Robot Problem}
 
 \begin{enumerate}[1.]
@@ -189,35 +232,51 @@ for i = 0 ... iterations
     \item Het TSP (Reizende Verkoper Probleem) gaat over een verkoper die een aantal, bijvoorbeeld 20, steden moet bezoeken. Natuurlijk vindt hij het prettig om dit in een zo efficiënt mogelijke volgorde te doen. Het probleem is dat dit erg moeilijk is om uit te rekenen, want het aantal mogelijke volgordes is $ 20! = 2.4\cdot 10^{18}$, wat hij logischerwijs niet allemaal door kan rekenen.
 
     % 9.  In a classic TSP, all cities (nodes) are singularly connected to all other nodes and relative distances are known and symmetric (a weighted complete graph). How is our problem different?
-    \item Het verschil tussen een gebruikelijk TSP en het Reizende Robot Probleem is dat de afstanden tussen de steden van het TSP bekend en duidelijk zijn, terwijl het zich voor ons probleem in een doolhof afspeelt, waarbij verschillende routes tussen twee punten genomen kunnen worden, die niet allemaal zo makkelijk te berekenen zijn.
-    \todo{Als je de hele afstandstabel hebt heb je toch in principe hetzelfde als classic TSP?}
+    \item Het verschil tussen een gebruikelijk TSP en het Reizende Robot Probleem is dat de afstanden tussen de steden van het TSP alleen afhankelijk zijn van hun positie, terwijl het zich voor ons probleem in een doolhof afspeelt, waarbij verschillende routes tussen twee punten genomen kunnen worden, die niet allemaal zo makkelijk te berekenen zijn. Het kan ook voorkomen dat twee punten praktisch naast elkaar liggen, maar de route ertussen toch erg lang is.
+
 
     %10.  Why are Computational Intelligence techniques an appropriate tool for solving a TSP?
-    \item CI-technieken zijn erg handig om dergelijke problemen op te lossen, doordat ze de rekenkracht van een computer gebruiken, maar op een slimme manier\todo{Herschrijven als: '... op te lossen, doordat ze de rekenkracht van een computer op een slimme manier gebruiken}, waardoor het optimum\todo{Je kan niet garanderen dat je het optimum daadwerkijk vindt toch?} veel sneller gevonden kan worden dan met enkel brute rekenkracht. Door de complexiteit van het doolhof zou het een mens veel langer kosten dan een computer om een goede route te vinden.
+    \item CI-technieken zijn erg handig om dergelijke problemen op te lossen, doordat ze de rekenkracht van een computer op een slimme manier gebruiken, namelijk door slim naar oplossingen te zoeken en niet in het wilde weg alles te proberen, waardoor (bij benadering) het optimum veel sneller gevonden kan worden dan met enkel brute rekenkracht.  Door de complexiteit van het doolhof zou het een mens veel langer kosten dan een computer om een goede route te vinden.
 
     %11.  What do the genes represent and how will you encode your chromosomes
-    \item De chromosomen bestaan uit de nummers 1 tot en met 18 en de volgorde waarop deze voorkomen in een chromosoom representeert de volgorde waarop de items opgepakt moeten worden door de robot.
-    \todo{Er staat niet letterlijk wat een 'gene' is.}
+    \item De chromosomen bestaan uit 18 genen. Elk gen representeert een ander item in het doolhof. De volgorde van deze genen bepaalt in welke volgorde de producten opgehaald worden.
 
     %12.  Which fitness function will you use
-    \item De fitness functie van het TSP is één gedeeld door de totale afstand die de robot van begin tot eind aflegt als hij alle producten oppakt.
+    \item De fitness functie van het TSP is één gedeeld door de totale afstand die de robot van begin tot eind aflegt als hij alle producten oppakt. Wij gebruiken voor de berekengingen  in plaats daarvan de totale afstand. Dit is dus eigenlijk niet de fitness, maar de inverse van de fitness.
+    $$F = s_{b,1} + \sum_{i}^{N-1}s_{i,i+1} + s_{N,e}$$ Waarbij F de totaal afgelegde afstand is, N het aantal genen in een chromosoom en $s_{i,i+1}$ de afstand tussen het $i^{ste}$ item en het $i+1^{ste}$ item. Hierbij is \textit{b} het start- en \textit{e} het eindpunt. In figuur \ref{verloop} is zichtbaar hoe fit het gemiddelde van de populatie en de fitste van de populatie zijn.
+\end{enumerate}
+    \begin{figure}[!ht]
+        \centering
+        \includegraphics[width=0.5\textwidth]{images/Fitness_over_iterations}
+        \caption{Verloop van de gemiddelde fitness en de beste fitness}
+        \label{verloop}
+    \end{figure}
 
-    \todo{Formule erbij doen?}
+    \pagebreak
+\begin{enumerate}[1.]
+  \setcounter{enumi}{12}
+
 
     %13.  How are parents selected from the population
-    \item De ouders worden geselecteerd met een kans die evenredig is met de fitness. Alle oorspronkelijke chromosomen worden gesorteerd op fitness. Vervolgens wordt er een normale kansverdeling gebruikt met verwachtingswaarde 0 en standaardafwijking 75. De absolute waarde hiervan geeft aan welke chromosoom uit de gesorteerde reeks genomen zal worden.
-    \todo{Hoe kom je op 75? (Volgens mij was je al van plan daar wat over te gaan schrijven)}
+    \item De ouders worden geselecteerd met een kans die evenredig is met de fitness. Alle oorspronkelijke chromosomen worden gesorteerd op fitness. Vervolgens wordt er een normale kansverdeling gebruikt met verwachtingswaarde 0 en standaardafwijking 75. De absolute waarde hiervan geeft aan welke chromosoom uit de gesorteerde reeks genomen zal worden. In figuur \ref{std} wordt geïllustreerd wat er gebeurt als de standaardafwijking veranderd wordt. Een lage standaardafwijking zorgt voor snellere convergentie naar een lokaal optimum. Als de standaardafwijking wordt verhoogt, vertraagt het proces weliswaar, maar hierdoor wordt de kans op een gelukkige afwijking ook groter, waardoor het makkelijker is voorbij een lokaal optimum te springen.
+
+    \begin{figure}[!ht]
+    \centering
+    \includegraphics[width=0.55\textwidth]{images/Verloop_bij_std}
+    \caption{Verloop van fitness bij verschillende waarden van de standaarddeviatie}
+    \label{std}
+    \end{figure}
 
     %14.  The functions of your genetic operations (e.g. cross-over, mutation)
     \item De nieuwe chromosomen worden gecreëerd door zowel cross-over als mutatie toe te passen. Cross-over houdt in dat van een ouderchromosoom een aantal genen gekopiëerd wordt, wat vervolgens de basis is van het kindchromosoom. De missende genen worden aangevuld door deze bij het kind in te plakken in de volgorde waarop ze voorkomen bij een tweede ouderchromosoom.
     \\* Mutatie betekent dat van een ouderchromosoom een willekeurig aantal genen geknipt, omgedraaid en teruggeplakt wordt. Dit wordt gedaan omdat op deze manier stukjes van dicht bij elkaar liggende items niet uit elkaar worden gescheurd, maar alleen in de omgekeerde volgorde bezocht worden, wat kan zorgen voor een verbetering.
+    \\* In een kwart van de gevallen wordt er mutatie toegepast en in driekwart van de gevallen cross-over. Dit wordt gedaan omdat cross-over in minder gevallen effectief is, maar wel nodig om naar een goede oplossing te komen. Hierdoor moet er in meer gevallen cross-over gebruikt worden om het nuttig te maken.
 
-    \todo{Doe je altijd een vast aantal, of gebruik je een bepaalde kansverdeling?}
 
     %15.  How do you prevent points being visited twice?
     \item De oorspronkelijke chromosomen worden zó gecreëerd dat ze precies alle items eenmaal bevatten. De manieren waarop gereproduceerd wordt, zijn zo ontwikkeld dat het niet kan voorkomen dat een kindchromosoom wel tweemaal hetzelfde getal bevat en een ander niet. Bij het mutatie- en cross-overproces wordt namelijk enkel de volgorde van de items veranderd, niet de items zelf.
 
-    %16.  How do you prevent local minima?
+%16.  How do you prevent local minima?
     \item Doordat er een normale verdeling gebruikt wordt om de ouders te selecteren, bestaat er altijd een kans dat er een slechter presterend chromosoom gepakt wordt. Dit chromosoom kan in een enkel geval wel betere kinderen geven, waardoor er voorbij een lokaal minimum gegaan kan worden. Om de optimale oplossing te vinden, moet echter een oneindig aantal iteraties plaatsvinden, want je weet niet wanneer de optimale oplossing gevonden gaat worden, maar enkel dát hij ooit gevonden wordt.
 
     %17.  What is elitism? Have you applied it?

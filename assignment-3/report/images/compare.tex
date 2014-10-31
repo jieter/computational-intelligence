@@ -1,0 +1,25 @@
+\def\imwidth{0.3\textwidth}
+\def\basepath{images/compare-graphs/}
+
+\newcommand{\ACOcompare}[3]{
+    \def\maze{#1}
+    \def\param{#2}
+    \def\lbl{#3}
+
+    \begin{figure}
+        \centering
+        \makebox[\textwidth][c]{
+            \subfloat{
+                \includegraphics[width=\imwidth]{\basepath \maze/aco-compare-\param-best_trail}
+            }\hfill
+            \subfloat{
+                \includegraphics[width=\imwidth]{\basepath \maze/aco-compare-\param-running_time}
+            }\hfill
+            \subfloat{
+                \includegraphics[width=\imwidth]{\basepath \maze/aco-compare-\param-best_at_iteration}
+            }
+        }
+        \caption{Variatie van parameter \textbf{\lbl} in de \textbf{\maze} maze: respectievelijk lengte van beste trail, running time en de iteratie waarin de beste voor het eerst voorkomt.}
+        \label{\maze-\param}
+    \end{figure}
+}
