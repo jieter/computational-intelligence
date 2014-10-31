@@ -65,7 +65,7 @@ def calcFitness(population, topper_count=10):
 
 
 def select_best(population):
-    toppers, _ = calcFitness(new_generation)
+    toppers, _ = calcFitness(population)
     return toppers[1]
 
 
@@ -163,36 +163,47 @@ def make_plot(xas):
 
 
 
+def tsp(generations):
+    chromosomen = []
+
+    locations = range(1, noOfItems + 1)
+    for N in range(noOfChroms):
+        shuffle(locations)
+        chromosomen.append(list(locations))
+
+    # first
+    new_generation = calcNewFamily(chromosomen)
+
+    for a in range(1, generations):
+        new_generation = calcNewFamily(new_generation)
+
+    return select_best(new_generation)
 
 if __name__ == '__main__':
 
     iterations = 100
-    generations = 500
+    generations = [100, 200, 300, 400, 500, 600, 700, 800, 900, 1000]
+
+    print 'Making boxplot for', iterations, ' iterations in range', generations,
+
     outcomes = []
-    for i in range(iterations):
-        chromosomen = []
-        locations = range(1, noOfItems + 1)
-        for N in range(noOfChroms):
-            shuffle(locations)
-            chromosomen.append(list(locations))
+    for num_gen in generations:
+        print 'Sample ', iteraions, 'x for ', generation, 'generations',
+        generation = []
+        for i in range(iterations):
+            winner = tsp(num_gen)
+            generation.append(fitness(winner))
 
-        # first
-        new_generation = calcNewFamily(chromosomen)
-
-        for a in range(1, generations):
-            new_generation = calcNewFamily(new_generation)
-
-        winner = select_best(new_generation)
-
-        outcomes.append(fitness(winner))
-        print 'finished try', i
+        outcomes.append(generation)
+        print 'Done'
 
     from pylab import figure, boxplot, title, xticks, ylim, xlabel, ylabel
     import matplotlib.pyplot as plt
 
     figure()
-    boxplot([outcomes])
-    ylabel('Fitness after %d generations' % generations)
+    boxplot(outcomes)
+    xticks(range(1, len(generations) + 1), generations)
+    ylabel('Best fitness in last generation' % generations)
     title('spreiding TSP (%d iterations)' % iterations)
 
     plt.savefig('spreiding-tsp.png')
